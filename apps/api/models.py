@@ -91,6 +91,11 @@ class Customer(Base):
 
     events = relationship("CustomerEvent", back_populates="customer")
 
+    churn_probability = Column(Float, nullable=True)
+    churn_risk_tier = Column(String, nullable=True)
+    churn_model_version = Column(String, nullable=True)
+    churn_computed_at = Column(DateTime(timezone=True), nullable=True)
+
 class CustomerEvent(Base):
     __tablename__ = "customer_events"
 
@@ -109,4 +114,22 @@ class CustomerEvent(Base):
 
     __table_args__ = (
         UniqueConstraint('tenant_id', 'source', 'external_event_id', name='uq_tenant_source_event'),
+    )
+
+class ChurnFeature(Base):
+    __tablename__ = "churn_features"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
+    as_of_date = Column(DateTime(timezone=True), nullable=False)
+    feature_set_version = Column(String, nullable=False)
+    from sqlalchemy.dialects.postgresql import JSONB
+    features = Column(JSONB, nullable=False, default=dict)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    customer = relationship("Customer")
+
+    __table_args__ = (
+        UniqueConstraint('tenant_id', 'customer_id', 'as_of_date', 'feature_set_version', name='uq_tenant_customer_date_version'),
     )

@@ -20,6 +20,10 @@ dependencies = [
     "redis>=5.0.4",
     "arq>=0.25.0",
     "python-multipart>=0.0.9",
+    "xgboost>=2.0.0",
+    "pandas>=2.0.0",
+    "scikit-learn>=1.3.0",
+    "joblib>=1.3.0",
 ]
 
 [project.optional-dependencies]
