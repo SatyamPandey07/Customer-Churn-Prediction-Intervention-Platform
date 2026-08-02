@@ -132,6 +132,9 @@ async def process_webhook(ctx, tenant_id: str, source: str, payload: dict):
         await session.commit()
 
 from apps.api.core.outreach.engine import evaluate_campaigns
+from apps.api.core.analytics.outcomes import track_intervention_outcomes
+from apps.api.core.analytics.roi import calculate_roi
+from datetime import timedelta
 
 async def run_campaign_evaluations(ctx):
     """
@@ -151,10 +154,44 @@ async def run_campaign_evaluations(ctx):
             
     logger.info("Finished run_campaign_evaluations job.")
 
+async def run_outcome_tracking(ctx):
+    """
+    Cron job to evaluate outcomes of pending interventions.
+    """
+    logger.info("Running run_outcome_tracking job...")
+    async with AsyncSessionLocal() as session:
+        tenants_res = await session.execute(sqlalchemy.select(Tenant.id).where(Tenant.is_active == True))
+        tenant_ids = tenants_res.scalars().all()
+        for tenant_id in tenant_ids:
+            # Enable RLS
+            await session.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
+            await track_intervention_outcomes(session, str(tenant_id), evaluation_days=30)
+    logger.info("Finished run_outcome_tracking job.")
+
+async def generate_weekly_roi_reports(ctx):
+    """
+    Cron job to generate ROI reports weekly.
+    """
+    logger.info("Running generate_weekly_roi_reports job...")
+    now = datetime.now(timezone.utc)
+    start_date = now - timedelta(days=7)
+    
+    async with AsyncSessionLocal() as session:
+        tenants_res = await session.execute(sqlalchemy.select(Tenant.id).where(Tenant.is_active == True))
+        tenant_ids = tenants_res.scalars().all()
+        for tenant_id in tenant_ids:
+            # Enable RLS
+            await session.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
+            await calculate_roi(session, str(tenant_id), start_date, now)
+    logger.info("Finished generate_weekly_roi_reports job.")
+
 class WorkerSettings:
     functions = [process_webhook]
     cron_jobs = [
         cron(batch_score_churn, hour=2, minute=0),
-        cron(run_campaign_evaluations, hour=3, minute=0)
+        cron(run_campaign_evaluations, hour=3, minute=0),
+        cron(run_outcome_tracking, hour=4, minute=0),
+        # Run ROI calculation every Monday (weekday=0) at 5 AM
+        cron(generate_weekly_roi_reports, weekday={0}, hour=5, minute=0)
     ]
     redis_settings = get_redis_settings()

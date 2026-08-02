@@ -18,6 +18,12 @@ class Role(str, enum.Enum):
     analyst = "analyst"
     viewer = "viewer"
 
+class InterventionOutcome(str, enum.Enum):
+    pending = "pending"
+    retained = "retained"
+    churned = "churned"
+    unknown = "unknown"
+
 class Tenant(Base):
     __tablename__ = "tenants"
 
@@ -142,6 +148,7 @@ class Campaign(Base):
     intervention_type = Column(String, nullable=False)
     channel = Column(String, nullable=False)
     template = Column(String, nullable=True)
+    variant_group_id = Column(String, nullable=True)
     status = Column(String, nullable=False, default="draft") # draft, active, paused
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
@@ -160,6 +167,8 @@ class Intervention(Base):
     status = Column(String, nullable=False, default="pending") # pending, sent, failed
     sent_at = Column(DateTime(timezone=True), nullable=True)
     manual_override = Column(Boolean, nullable=False, default=False)
+    outcome = Column(Enum(InterventionOutcome, name='intervention_outcome'), nullable=False, default=InterventionOutcome.pending)
+    outcome_recorded_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     tenant = relationship("Tenant")
@@ -178,3 +187,18 @@ class InAppNotification(Base):
 
     tenant = relationship("Tenant")
     customer = relationship("Customer")
+
+class RoiReport(Base):
+    __tablename__ = "roi_reports"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    period_start = Column(DateTime(timezone=True), nullable=False)
+    period_end = Column(DateTime(timezone=True), nullable=False)
+    churn_events_prevented = Column(Float, nullable=False)
+    revenue_saved = Column(Float, nullable=False)
+    roi_multiple = Column(Float, nullable=False)
+    methodology = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    tenant = relationship("Tenant")
