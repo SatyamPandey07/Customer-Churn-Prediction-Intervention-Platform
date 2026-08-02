@@ -4,6 +4,11 @@ from datetime import datetime, timezone
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Enum, UniqueConstraint, Float
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy_utils import StringEncryptedType
+from sqlalchemy_utils.types.encrypted.encrypted_type import AesGcmEngine
+import os
+
+ENCRYPTION_KEY = os.environ.get("ENCRYPTION_KEY", "super-secret-encryption-key-1234")
 
 Base = declarative_base()
 
@@ -42,7 +47,7 @@ class User(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
-    email = Column(String, nullable=False)
+    email = Column(StringEncryptedType(String, ENCRYPTION_KEY, AesGcmEngine, 'pkcs5'), nullable=False)
     hashed_password = Column(String, nullable=True)
     role = Column(Enum(Role, name='user_role'), nullable=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

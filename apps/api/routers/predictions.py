@@ -8,8 +8,33 @@ from apps.api.core.deps import get_db, get_current_user
 from apps.api.models import Customer
 from apps.api.core.ml.predict import predict_churn
 from apps.api.core.ml.features import extract_features
+from apps.api.core.queue import publish_churn_update
+from pydantic import BaseModel, ConfigDict
+from typing import List, Optional
+
+class CustomerListResponse(BaseModel):
+    id: uuid.UUID
+    plan: Optional[str] = None
+    mrr: float = 0.0
+    churn_probability: Optional[float] = None
+    churn_risk_tier: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
 
 router = APIRouter(prefix="/customers", tags=["Predictions"])
+
+@router.get("", response_model=List[CustomerListResponse])
+async def list_customers(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    tenant_id = uuid.UUID(current_user["tenant_id"])
+    result = await db.execute(
+        select(Customer)
+        .where(Customer.tenant_id == tenant_id)
+        .order_by(Customer.mrr.desc())
+    )
+    customers = result.scalars().all()
+    return customers
 
 @router.get("/{customer_id}/churn-risk")
 async def get_churn_risk(
@@ -62,6 +87,9 @@ async def get_churn_risk(
     customer.churn_model_version = model_version
     customer.churn_computed_at = now
     await db.commit()
+    
+    # Publish to Redis
+    await publish_churn_update(str(tenant_id), str(customer_id), proba, tier)
     
     return {
         "probability": proba,

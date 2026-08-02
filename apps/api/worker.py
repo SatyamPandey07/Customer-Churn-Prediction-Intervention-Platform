@@ -1,6 +1,7 @@
 import uuid
 import logging
 import sqlalchemy
+import os
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from apps.api.core.deps import AsyncSessionLocal
@@ -11,56 +12,66 @@ from datetime import datetime, timezone
 from apps.api.models import Customer, CustomerEvent, Tenant
 from apps.api.core.ml.predict import predict_churn
 from apps.api.core.ml.features import extract_features
+from apps.api.core.queue import publish_churn_update
+from opentelemetry import trace
+from apps.api.core.observability import setup_observability
 
 logger = logging.getLogger(__name__)
+
+async def startup(ctx):
+    setup_observability()
+    ctx["tracer"] = trace.get_tracer(__name__)
 
 async def batch_score_churn(ctx):
     """
     Nightly batch job to compute churn risk for all active customers.
     """
-    logger.info("Running nightly batch_score_churn job...")
-    now = datetime.now(timezone.utc)
-    
-    async with AsyncSessionLocal() as session:
-        # Get all distinct active tenants
-        tenants_res = await session.execute(sqlalchemy.select(Tenant.id).where(Tenant.is_active == True))
-        tenant_ids = tenants_res.scalars().all()
+    tracer = ctx.get("tracer", trace.get_tracer(__name__))
+    with tracer.start_as_current_span("batch_score_churn"):
+        logger.info("Running nightly batch_score_churn job...")
+        now = datetime.now(timezone.utc)
         
-        for tenant_id in tenant_ids:
-            logger.info(f"Processing tenant {tenant_id}")
-            # Enable RLS
-            await session.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
+        async with AsyncSessionLocal() as session:
+            # Get all distinct active tenants
+            tenants_res = await session.execute(sqlalchemy.select(Tenant.id).where(Tenant.is_active == True))
+            tenant_ids = tenants_res.scalars().all()
             
-            df_features = await extract_features(session, tenant_id, now)
-            if df_features.empty:
-                continue
+            for tenant_id in tenant_ids:
+                logger.info(f"Processing tenant {tenant_id}")
+                # Enable RLS
+                await session.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
                 
-            customers_res = await session.execute(
-                sqlalchemy.select(Customer).where(Customer.tenant_id == tenant_id)
-            )
-            customers = {str(c.id): c for c in customers_res.scalars().all()}
-            
-            for _, row in df_features.iterrows():
-                c_id = str(row["customer_id"])
-                if c_id not in customers:
+                df_features = await extract_features(session, tenant_id, now)
+                if df_features.empty:
                     continue
                     
-                feature_dict = row.drop("customer_id").to_dict()
-                try:
-                    proba, tier, model_version, _ = predict_churn(feature_dict)
-                except RuntimeError as e:
-                    logger.error(f"Prediction failed: {e}")
-                    continue
-                    
-                c = customers[c_id]
-                c.churn_probability = proba
-                c.churn_risk_tier = tier
-                c.churn_model_version = model_version
-                c.churn_computed_at = now
+                customers_res = await session.execute(
+                    sqlalchemy.select(Customer).where(Customer.tenant_id == tenant_id)
+                )
+                customers = {str(c.id): c for c in customers_res.scalars().all()}
                 
-            await session.commit()
-            
-    logger.info("Finished batch_score_churn job.")
+                for _, row in df_features.iterrows():
+                    c_id = str(row["customer_id"])
+                    if c_id not in customers:
+                        continue
+                        
+                    feature_dict = row.drop("customer_id").to_dict()
+                    try:
+                        proba, tier, model_version, _ = predict_churn(feature_dict)
+                    except RuntimeError as e:
+                        logger.error(f"Prediction failed: {e}")
+                        continue
+                        
+                    c = customers[c_id]
+                    c.churn_probability = proba
+                    c.churn_risk_tier = tier
+                    c.churn_model_version = model_version
+                    c.churn_computed_at = now
+                    await publish_churn_update(str(tenant_id), c_id, proba, tier)
+                    
+                await session.commit()
+                
+        logger.info("Finished batch_score_churn job.")
 
 async def process_webhook(ctx, tenant_id: str, source: str, payload: dict):
     adapter = get_adapter(source)

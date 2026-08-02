@@ -1,4 +1,5 @@
 import os
+import json
 from arq import create_pool
 from arq.connections import RedisSettings
 
@@ -18,3 +19,15 @@ def get_redis_settings() -> RedisSettings:
 async def get_queue():
     settings = get_redis_settings()
     return await create_pool(settings)
+
+async def publish_churn_update(tenant_id: str, customer_id: str, probability: float, risk_tier: str):
+    import redis.asyncio as redis
+    r = redis.from_url(REDIS_URL)
+    payload = json.dumps({
+        "tenant_id": tenant_id,
+        "customer_id": customer_id,
+        "churn_probability": probability,
+        "churn_risk_tier": risk_tier
+    })
+    await r.publish("churn_updates", payload)
+    await r.aclose()

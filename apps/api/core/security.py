@@ -3,9 +3,10 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Union
 from jose import jwt
 from passlib.context import CryptContext
+from apps.api.core.secrets import secrets_manager
 
 PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "super-secret-key-for-local-dev-only")
+JWT_SECRET_KEY = secrets_manager.get_secret("JWT_SECRET_KEY") or "super-secret-key-for-local-dev-only"
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 15
 

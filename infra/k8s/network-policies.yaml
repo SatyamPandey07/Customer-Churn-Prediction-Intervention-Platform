@@ -1,0 +1,96 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: churn-api
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: churn-redis
+    ports:
+    - port: 6379
+  # Egress to external internet for 3rd party APIs (Stripe, Segment, Gemini)
+  - ports:
+    - port: 443
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: worker-network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: churn-worker
+  policyTypes:
+  - Ingress
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: churn-redis
+    ports:
+    - port: 6379
+  - ports:
+    - port: 443
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: churn-redis
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: churn-api
+    - podSelector:
+        matchLabels:
+          app: churn-worker
+    - podSelector:
+        matchLabels:
+          app: churn-realtime
+    ports:
+    - port: 6379

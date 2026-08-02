@@ -4,6 +4,12 @@ import pandas as pd
 from typing import Dict, Any
 
 import shap
+from pydantic import BaseModel, Field
+import xgboost as xgb
+from google import genai
+from apps.api.core.secrets import secrets_manager
+
+GEMINI_API_KEY = secrets_manager.get_secret("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
 MODEL_PATH = os.path.join(MODEL_DIR, "xgboost_v1.joblib")

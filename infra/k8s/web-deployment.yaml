@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: churn-web
+  labels:
+    app: churn-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: churn-web
+  template:
+    metadata:
+      labels:
+        app: churn-web
+    spec:
+      containers:
+      - name: web
+        image: ghcr.io/churn-platform/web:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NEXT_PUBLIC_API_URL
+          value: "https://api.churn-platform.com"
+        - name: NEXT_PUBLIC_REALTIME_URL
+          value: "https://realtime.churn-platform.com"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: churn-web
+spec:
+  type: ClusterIP
+  selector:
+    app: churn-web
+  ports:
+  - port: 3000
+    targetPort: 3000

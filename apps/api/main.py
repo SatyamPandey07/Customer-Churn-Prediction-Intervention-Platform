@@ -1,8 +1,21 @@
 from fastapi import FastAPI
-from apps.api.routers import auth, webhooks, predictions, explanations, campaigns, interventions, analytics
+from fastapi.middleware.cors import CORSMiddleware
+from apps.api.routers import auth, webhooks, predictions, explanations, campaigns, interventions, analytics, compliance
 from apps.api.core.observability import setup_observability
+from apps.api.core.middleware import SecurityHeadersMiddleware, GlobalRateLimitMiddleware
 
 app = FastAPI(title="Churn Intervention API")
+
+# Security Middlewares
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://app.churn-platform.com", "http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(GlobalRateLimitMiddleware)
 
 app.include_router(auth.router)
 app.include_router(webhooks.router)
@@ -11,6 +24,7 @@ app.include_router(explanations.router)
 app.include_router(campaigns.router)
 app.include_router(interventions.router)
 app.include_router(analytics.router)
+app.include_router(compliance.router)
 
 # Initialize observability
 setup_observability(app)
@@ -18,3 +32,12 @@ setup_observability(app)
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
+
+@app.get("/live")
+async def liveness_probe():
+    return {"status": "alive"}
+
+@app.get("/ready")
+async def readiness_probe():
+    # In a real app, you would check DB connection here
+    return {"status": "ready"}
