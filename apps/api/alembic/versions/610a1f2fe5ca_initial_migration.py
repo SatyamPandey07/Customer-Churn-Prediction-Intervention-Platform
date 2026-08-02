@@ -50,10 +50,12 @@ def upgrade() -> None:
 
     # Enable RLS on tenants
     op.execute("ALTER TABLE tenants ENABLE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE tenants FORCE ROW LEVEL SECURITY")
     op.execute("CREATE POLICY tenant_isolation_policy ON tenants USING (id = current_setting('app.current_tenant')::uuid)")
 
     # Enable RLS on users
     op.execute("ALTER TABLE users ENABLE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE users FORCE ROW LEVEL SECURITY")
     op.execute("CREATE POLICY tenant_isolation_policy ON users USING (tenant_id = current_setting('app.current_tenant')::uuid)")
 
 

@@ -21,7 +21,8 @@ def test_rls_enabled_on_tables():
         env = os.environ.copy()
         env["DATABASE_URL"] = postgres.get_connection_url().replace("postgresql+psycopg2", "postgresql")
         
-        subprocess.run(["alembic", "upgrade", "head"], env=env, check=True)
+        api_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)))
+        subprocess.run(["alembic", "upgrade", "head"], env=env, check=True, cwd=api_dir)
         
         # Check if RLS is enabled on tenants
         cur.execute("SELECT relrowsecurity FROM pg_class WHERE relname = 'tenants'")
