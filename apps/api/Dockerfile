@@ -9,6 +9,7 @@ COPY pyproject.toml .
 COPY api ./api
 RUN uv pip install --system -e .
 
-COPY . .
+COPY . /app/apps/api
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENV PYTHONPATH=/app
+CMD ["uvicorn", "apps.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

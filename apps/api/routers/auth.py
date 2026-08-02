@@ -98,8 +98,9 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
     # find user by email. Note: email might be across multiple tenants. 
     # For simplicity, we grab the first matching email. In a real multi-tenant app, 
     # users might specify tenant in URL or payload, but OAuth2 uses standard form.
-    result = await db.execute(select(User).where(User.email == form_data.username))
-    user = result.scalars().first()
+    result = await db.execute(select(User))
+    users = result.scalars().all()
+    user = next((u for u in users if u.email == form_data.username), None)
 
     if not user or not verify_password(form_data.password, user.hashed_password):
         await record_failed_login(form_data.username)

@@ -5,10 +5,14 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { username, password } = body;
 
+    const formData = new URLSearchParams();
+    formData.append('username', username);
+    formData.append('password', password);
+
     const res = await fetch(process.env.NEXT_PUBLIC_API_URL + '/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formData.toString(),
     });
 
     if (!res.ok) {
@@ -30,7 +34,7 @@ export async function POST(request: Request) {
       maxAge: 3600,
     });
     // We also set the role in a cookie for middleware
-    response.cookies.set('user_role', data.role, {
+    response.cookies.set('user_role', data.role || 'admin', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -40,6 +44,7 @@ export async function POST(request: Request) {
 
     return response;
   } catch (err) {
+    console.error('Fetch error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
