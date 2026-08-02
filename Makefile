@@ -7,10 +7,10 @@ down:
 	docker compose down
 
 migrate:
-	cd apps/api && uv run alembic upgrade head
+	cd apps/api && source .venv/bin/activate && alembic upgrade head
 
 test:
-	cd apps/api && uv run pytest
+	cd apps/api && source .venv/bin/activate && pytest
 
 lint:
-	cd apps/api && uv run ruff check .
+	cd apps/api && source .venv/bin/activate && ruff check .
