@@ -19,9 +19,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Create ENUMs
-    op.execute("CREATE TYPE plantier AS ENUM ('tier1', 'tier2', 'tier3')")
-    op.execute("CREATE TYPE user_role AS ENUM ('owner', 'admin', 'analyst', 'viewer')")
+    # ENUMs are created automatically by sa.Enum during create_table
 
     # Create tenants table
     op.create_table(
@@ -69,5 +67,5 @@ def downgrade() -> None:
     op.drop_table('tenants')
     
     # Drop ENUMs
-    op.execute("DROP TYPE user_role")
-    op.execute("DROP TYPE plantier")
+    op.execute("DROP TYPE IF EXISTS user_role")
+    op.execute("DROP TYPE IF EXISTS plantier")
