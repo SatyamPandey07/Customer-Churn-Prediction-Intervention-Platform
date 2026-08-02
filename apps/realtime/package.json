@@ -1,0 +1,13 @@
+{
+  "name": "realtime",
+  "version": "1.0.0",
+  "description": "Realtime WebSocket gateway stub",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "socket.io": "^4.7.5",
+    "express": "^4.19.2"
+  }
+}
