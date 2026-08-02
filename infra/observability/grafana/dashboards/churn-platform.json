@@ -1,0 +1,61 @@
+{
+  "title": "Churn Platform - Observability Dashboard",
+  "tags": ["churn", "production"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "API Request Rate (RED)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sum(rate(fastapi_requests_total[1m])) by (method)", "legendFormat": "{{method}}" }
+      ]
+    },
+    {
+      "title": "API Error Rate",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "targets": [
+        { "expr": "sum(rate(fastapi_requests_total{status_code=~\"5..\"}[1m]))", "legendFormat": "5xx Errors" }
+      ]
+    },
+    {
+      "title": "API p95 Latency",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(fastapi_requests_duration_seconds_bucket[1m])) by (le))", "legendFormat": "p95 Latency" }
+      ]
+    },
+    {
+      "title": "Job Queue Depth",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "targets": [
+        { "expr": "arq_queued_jobs", "legendFormat": "Jobs" }
+      ]
+    },
+    {
+      "title": "LLM Failure Rate",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "targets": [
+        { "expr": "sum(rate(llm_calls_total{status=\"error\"}[1m]))", "legendFormat": "Errors" }
+      ]
+    },
+    {
+      "title": "DB Connection Saturation",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "targets": [
+        { "expr": "sqlalchemy_pool_checkedout / (sqlalchemy_pool_checkedout + sqlalchemy_pool_checkedin)", "legendFormat": "Saturation %" }
+      ]
+    }
+  ]
+}
