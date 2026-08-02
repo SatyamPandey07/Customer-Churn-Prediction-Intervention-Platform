@@ -52,7 +52,7 @@ async def get_churn_risk(
     feature_dict = c_features.iloc[0].drop("customer_id").to_dict()
     
     try:
-        proba, tier, model_version = predict_churn(feature_dict)
+        proba, tier, model_version, _ = predict_churn(feature_dict)
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
     

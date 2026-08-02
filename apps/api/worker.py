@@ -47,7 +47,7 @@ async def batch_score_churn(ctx):
                     
                 feature_dict = row.drop("customer_id").to_dict()
                 try:
-                    proba, tier, model_version = predict_churn(feature_dict)
+                    proba, tier, model_version, _ = predict_churn(feature_dict)
                 except RuntimeError as e:
                     logger.error(f"Prediction failed: {e}")
                     continue
