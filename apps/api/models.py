@@ -1,8 +1,8 @@
 import enum
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Enum, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Enum, UniqueConstraint, Float
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -80,8 +80,6 @@ class Customer(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
     # external_ids maps source -> id (e.g., {"stripe": "cus_123", "segment": "u_456"})
-    from sqlalchemy.dialects.postgresql import JSONB
-    from sqlalchemy import Float
     external_ids = Column(JSONB, nullable=False, default=dict)
     plan = Column(String, nullable=True)
     mrr = Column(Float, nullable=True, default=0.0)
@@ -133,3 +131,50 @@ class ChurnFeature(Base):
     __table_args__ = (
         UniqueConstraint('tenant_id', 'customer_id', 'as_of_date', 'feature_set_version', name='uq_tenant_customer_date_version'),
     )
+
+class Campaign(Base):
+    __tablename__ = "campaigns"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    name = Column(String, nullable=False)
+    trigger_rule = Column(JSONB, nullable=False, default=dict)
+    intervention_type = Column(String, nullable=False)
+    channel = Column(String, nullable=False)
+    template = Column(String, nullable=True)
+    status = Column(String, nullable=False, default="draft") # draft, active, paused
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    tenant = relationship("Tenant")
+    creator = relationship("User")
+
+class Intervention(Base):
+    __tablename__ = "interventions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
+    campaign_id = Column(UUID(as_uuid=True), ForeignKey("campaigns.id"), nullable=True)
+    channel = Column(String, nullable=False)
+    status = Column(String, nullable=False, default="pending") # pending, sent, failed
+    sent_at = Column(DateTime(timezone=True), nullable=True)
+    manual_override = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    tenant = relationship("Tenant")
+    customer = relationship("Customer")
+    campaign = relationship("Campaign")
+
+class InAppNotification(Base):
+    __tablename__ = "in_app_notifications"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
+    message = Column(String, nullable=False)
+    is_read = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    tenant = relationship("Tenant")
+    customer = relationship("Customer")

@@ -131,10 +131,30 @@ async def process_webhook(ctx, tenant_id: str, source: str, payload: dict):
         
         await session.commit()
 
+from apps.api.core.outreach.engine import evaluate_campaigns
+
+async def run_campaign_evaluations(ctx):
+    """
+    Cron job to evaluate campaign trigger rules for active tenants and dispatch interventions.
+    """
+    logger.info("Running run_campaign_evaluations job...")
+    async with AsyncSessionLocal() as session:
+        # Get all distinct active tenants
+        tenants_res = await session.execute(sqlalchemy.select(Tenant.id).where(Tenant.is_active == True))
+        tenant_ids = tenants_res.scalars().all()
+        
+        for tenant_id in tenant_ids:
+            logger.info(f"Evaluating campaigns for tenant {tenant_id}")
+            # Enable RLS
+            await session.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
+            await evaluate_campaigns(session, tenant_id)
+            
+    logger.info("Finished run_campaign_evaluations job.")
+
 class WorkerSettings:
     functions = [process_webhook]
     cron_jobs = [
-        cron(batch_score_churn, hour=2, minute=0)
+        cron(batch_score_churn, hour=2, minute=0),
+        cron(run_campaign_evaluations, hour=3, minute=0)
     ]
     redis_settings = get_redis_settings()
-    
