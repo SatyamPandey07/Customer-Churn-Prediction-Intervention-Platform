@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -79,4 +79,18 @@ async def manual_override(
     await db.commit()
     await db.refresh(intervention)
     
+    
     return intervention
+
+@router.get("", response_model=List[InterventionResponse])
+async def get_interventions(
+    customer_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(require_role([Role.owner, Role.admin, Role.analyst, Role.viewer]))
+):
+    result = await db.execute(
+        select(Intervention).where(
+            and_(Intervention.customer_id == customer_id, Intervention.tenant_id == user["tenant_id"])
+        ).order_by(Intervention.sent_at.desc().nulls_last())
+    )
+    return result.scalars().all()
