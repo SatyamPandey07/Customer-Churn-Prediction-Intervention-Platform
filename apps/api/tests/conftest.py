@@ -52,6 +52,14 @@ async def db_engine(postgres_container):
         await conn.execute(sqlalchemy.text("ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY"))
         await conn.execute(sqlalchemy.text("ALTER TABLE audit_logs FORCE ROW LEVEL SECURITY"))
         await conn.execute(sqlalchemy.text("CREATE POLICY tenant_isolation_policy ON audit_logs USING (tenant_id = current_setting('app.current_tenant')::uuid)"))
+
+        await conn.execute(sqlalchemy.text("ALTER TABLE customers ENABLE ROW LEVEL SECURITY"))
+        await conn.execute(sqlalchemy.text("ALTER TABLE customers FORCE ROW LEVEL SECURITY"))
+        await conn.execute(sqlalchemy.text("CREATE POLICY tenant_isolation_policy ON customers USING (tenant_id = current_setting('app.current_tenant')::uuid)"))
+
+        await conn.execute(sqlalchemy.text("ALTER TABLE customer_events ENABLE ROW LEVEL SECURITY"))
+        await conn.execute(sqlalchemy.text("ALTER TABLE customer_events FORCE ROW LEVEL SECURITY"))
+        await conn.execute(sqlalchemy.text("CREATE POLICY tenant_isolation_policy ON customer_events USING (tenant_id = current_setting('app.current_tenant')::uuid)"))
         
     yield engine
     

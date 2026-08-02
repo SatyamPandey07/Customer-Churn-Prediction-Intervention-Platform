@@ -73,3 +73,40 @@ class AuditLog(Base):
 
     tenant = relationship("Tenant", back_populates="audit_logs")
     actor = relationship("User")
+
+class Customer(Base):
+    __tablename__ = "customers"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    # external_ids maps source -> id (e.g., {"stripe": "cus_123", "segment": "u_456"})
+    from sqlalchemy.dialects.postgresql import JSONB
+    from sqlalchemy import Float
+    external_ids = Column(JSONB, nullable=False, default=dict)
+    plan = Column(String, nullable=True)
+    mrr = Column(Float, nullable=True, default=0.0)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    first_seen_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    last_seen_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    events = relationship("CustomerEvent", back_populates="customer")
+
+class CustomerEvent(Base):
+    __tablename__ = "customer_events"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
+    source = Column(String, nullable=False)
+    external_event_id = Column(String, nullable=False)
+    event_type = Column(String, nullable=False)
+    from sqlalchemy.dialects.postgresql import JSONB
+    properties = Column(JSONB, nullable=False, default=dict)
+    occurred_at = Column(DateTime(timezone=True), nullable=False)
+    ingested_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    customer = relationship("Customer", back_populates="events")
+
+    __table_args__ = (
+        UniqueConstraint('tenant_id', 'source', 'external_event_id', name='uq_tenant_source_event'),
+    )
