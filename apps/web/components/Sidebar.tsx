@@ -30,14 +30,13 @@ export default function Sidebar({ userRole }: { userRole: string }) {
       {/* Brand Logo */}
       <div className="p-6 border-b border-slate-200/60 dark:border-slate-800/60">
         <Link href="/dashboard" className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-md shadow-blue-500/20">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-md shadow-blue-500/20 flex-shrink-0">
             <Zap className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white font-serif">
-              Churn<span className="text-blue-600 dark:text-blue-400 font-sans">AI</span>
+            <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white font-serif leading-none">
+              churn<span className="text-blue-600 dark:text-blue-400 font-sans">.ai</span>
             </h1>
-            <div className="text-[10px] font-bold text-slate-400 dark:text-slate-400 font-mono tracking-wider">ENTERPRISE SAAS</div>
           </div>
         </Link>
       </div>

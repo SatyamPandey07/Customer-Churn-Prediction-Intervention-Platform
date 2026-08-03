@@ -242,12 +242,12 @@ export const MOCK_INTEGRATIONS: Integration[] = [
     id: 'webhook',
     name: 'Custom HTTP Webhook Endpoint',
     category: 'Realtime API',
-    description: 'Stream custom JSON event payloads directly to ChurnAI\'s real-time ingestion pipeline.',
+    description: 'Stream custom JSON event payloads directly to churn.ai\'s real-time ingestion pipeline.',
     icon: 'webhook',
     status: 'connected',
     last_sync: '2026-08-03T11:52:00Z',
     events_count_24h: 12800,
-    config: { endpoint_url: 'https://api.churn-platform.com/webhooks/v1/ingest', signing_secret: 'wh_sign_••••••••9901' }
+    config: { endpoint_url: 'https://api.churn.ai/webhooks/v1/ingest', signing_secret: 'wh_sign_••••••••9901' }
   }
 ];
 

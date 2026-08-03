@@ -79,7 +79,7 @@ export default function ClientIntegrations({ initialIntegrations = [] }: { initi
   };
 
   const copyWebhookUrl = () => {
-    navigator.clipboard.writeText('https://api.churn-platform.com/webhooks/v1/ingest');
+    navigator.clipboard.writeText('https://api.churn.ai/webhooks/v1/ingest');
     setCopiedWebhook(true);
     setTimeout(() => setCopiedWebhook(false), 2000);
   };
@@ -209,7 +209,7 @@ export default function ClientIntegrations({ initialIntegrations = [] }: { initi
 
         <div className="flex items-center space-x-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 rounded-xl">
           <code className="text-xs font-mono text-blue-600 dark:text-blue-400 flex-1 overflow-x-auto">
-            POST https://api.churn-platform.com/webhooks/v1/ingest
+            POST https://api.churn.ai/webhooks/v1/ingest
           </code>
           <button
             onClick={copyWebhookUrl}

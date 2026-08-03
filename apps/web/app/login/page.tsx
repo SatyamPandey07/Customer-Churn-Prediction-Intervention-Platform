@@ -116,10 +116,10 @@ export default function LoginPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center">
         <div className="inline-flex items-center justify-center space-x-2.5 bg-blue-500/10 dark:bg-gradient-to-r dark:from-blue-600/20 dark:to-indigo-600/20 border border-blue-500/20 dark:border-blue-500/30 px-4 py-1.5 rounded-full text-blue-600 dark:text-blue-400 text-xs font-bold uppercase tracking-widest mb-4">
           <Sparkles className="w-4 h-4 text-blue-500 animate-pulse" />
-          <span>Enterprise AI Churn Intelligence</span>
+          <span>churn.ai</span>
         </div>
         <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white font-serif">
-          Churn<span className="text-blue-600 dark:text-blue-500 font-sans">Platform</span>
+          churn<span className="text-blue-600 dark:text-blue-500 font-sans">.ai</span>
         </h1>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
           Predict churn risk, generate SHAP explanations, & automate targeted retention campaigns.
