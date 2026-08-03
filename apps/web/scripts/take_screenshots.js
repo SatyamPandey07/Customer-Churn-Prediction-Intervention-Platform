@@ -10,64 +10,66 @@ const fs = require('fs');
 
   const browser = await chromium.launch();
   const context = await browser.newContext();
-  
+
+  // 1. Capture Login Light & Dark
+  const page = await context.newPage();
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  console.log('Navigating to http://localhost:3000/login...');
+  try {
+    await page.goto('http://localhost:3000/login', { waitUntil: 'domcontentloaded' });
+    
+    // Light Mode Login
+    await page.evaluate(() => {
+      localStorage.setItem('churn_ai_theme', 'light');
+      document.documentElement.classList.remove('dark');
+    });
+    await page.waitForTimeout(1000);
+    console.log('Taking screenshot of Login (Light Mode)...');
+    await page.screenshot({ path: path.join(dir, 'login_light.png') });
+
+    // Dark Mode Login
+    await page.evaluate(() => {
+      localStorage.setItem('churn_ai_theme', 'dark');
+      document.documentElement.classList.add('dark');
+    });
+    await page.waitForTimeout(1000);
+    console.log('Taking screenshot of Login (Dark Mode)...');
+    await page.screenshot({ path: path.join(dir, 'login_dark.png') });
+  } catch (e) {
+    console.error('Login screenshot error:', e);
+  }
+
+  // 2. Inject Auth Cookies for Dashboard
   await context.addCookies([
     { name: 'user_role', value: 'admin', domain: 'localhost', path: '/' },
     { name: 'access_token', value: 'demo_admin_access_token', domain: 'localhost', path: '/' }
   ]);
 
-  const page = await context.newPage();
-  await page.setViewportSize({ width: 1440, height: 900 });
-
-  console.log('Navigating directly to http://localhost:3000/dashboard...');
-  
+  console.log('Navigating to http://localhost:3000/dashboard...');
   try {
     await page.goto('http://localhost:3000/dashboard', { waitUntil: 'domcontentloaded' });
-  } catch (e) {
-    console.error('Failed to load dashboard:', e);
-    await browser.close();
-    process.exit(1);
-  }
-
-  try {
+    
+    // Light Mode Dashboard
     await page.evaluate(() => {
       localStorage.setItem('churn_ai_theme', 'light');
       document.documentElement.classList.remove('dark');
     });
-    
     await page.waitForSelector('text=Churn Risk Telemetry', { timeout: 10000 });
-    await page.waitForTimeout(1500);
-
+    await page.waitForTimeout(1000);
     console.log('Taking screenshot of Dashboard (Light Mode)...');
     await page.screenshot({ path: path.join(dir, 'dashboard_light.png') });
 
-    console.log('Navigating to Campaigns page...');
-    await page.click('text=Campaigns');
-    await page.waitForSelector('text=Automated Retention Campaigns', { timeout: 10000 });
-    await page.waitForTimeout(1500);
-
-    console.log('Taking screenshot of Campaigns (Light Mode)...');
-    await page.screenshot({ path: path.join(dir, 'campaigns_light.png') });
-
-    console.log('Navigating to Audit Logs page...');
-    await page.click('text=Audit Logs');
-    await page.waitForSelector('text=SOC2 & GDPR Compliance Audit Stream', { timeout: 10000 });
-    await page.waitForTimeout(1500);
-
-    console.log('Taking screenshot of Audit Logs (Light Mode)...');
-    await page.screenshot({ path: path.join(dir, 'audit_logs_light.png') });
-
-    console.log('Navigating to Settings page...');
-    await page.click('text=Settings');
-    await page.waitForSelector('text=Tenant Settings & Access Control', { timeout: 10000 });
-    await page.waitForTimeout(1500);
-
-    console.log('Taking screenshot of Settings (Light Mode)...');
-    await page.screenshot({ path: path.join(dir, 'settings_light.png') });
+    // Dark Mode Dashboard
+    await page.evaluate(() => {
+      localStorage.setItem('churn_ai_theme', 'dark');
+      document.documentElement.classList.add('dark');
+    });
+    await page.waitForTimeout(1000);
+    console.log('Taking screenshot of Dashboard (Dark Mode)...');
+    await page.screenshot({ path: path.join(dir, 'dashboard_dark.png') });
   } catch (e) {
-    console.log('Error occurred, taking debug screenshot...');
-    await page.screenshot({ path: path.join(dir, 'error.png') });
-    console.error(e);
+    console.error('Dashboard screenshot error:', e);
   }
 
   await browser.close();
