@@ -34,6 +34,7 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    role: str = "viewer"
 
 class RefreshRequest(BaseModel):
     refresh_token: str
@@ -143,7 +144,8 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
     return {
         "access_token": access_token,
         "refresh_token": refresh_token_str,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "role": user.role.value
     }
 
 @router.post("/refresh", response_model=TokenResponse)

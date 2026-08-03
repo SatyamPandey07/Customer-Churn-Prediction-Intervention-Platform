@@ -2,7 +2,7 @@ import uuid
 from typing import Optional, List
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 
@@ -26,8 +26,7 @@ class InterventionResponse(BaseModel):
     sent_at: Optional[datetime]
     manual_override: bool
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 @router.post("/override", response_model=InterventionResponse)
 async def manual_override(

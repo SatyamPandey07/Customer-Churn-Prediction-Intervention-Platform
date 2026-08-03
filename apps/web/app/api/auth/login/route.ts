@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       maxAge: 3600,
     });
     // We also set the role in a cookie for middleware
-    response.cookies.set('user_role', data.role || 'admin', {
+    response.cookies.set('user_role', data.role || 'viewer', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

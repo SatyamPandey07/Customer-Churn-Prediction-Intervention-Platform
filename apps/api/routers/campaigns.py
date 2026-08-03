@@ -1,7 +1,7 @@
 import uuid
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 
@@ -23,8 +23,7 @@ class CampaignResponse(CampaignCreate):
     tenant_id: uuid.UUID
     created_by: Optional[uuid.UUID]
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 @router.get("", response_model=List[CampaignResponse])
 async def list_campaigns(

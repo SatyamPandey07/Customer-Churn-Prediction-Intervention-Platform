@@ -4,8 +4,8 @@ import asyncio
 from httpx import AsyncClient, ASGITransport
 import sqlalchemy
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from testcontainers.postgres import PostgresContainer
-from testcontainers.redis import RedisContainer
+from testcontainers.community.postgres import PostgresContainer
+from testcontainers.community.redis import RedisContainer
 
 # We need to set env vars before importing app
 import os
