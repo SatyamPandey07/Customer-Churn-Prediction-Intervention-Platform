@@ -26,25 +26,25 @@ export default function Sidebar({ userRole }: { userRole: string }) {
   };
 
   return (
-    <aside className="flex flex-col w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800/80 text-slate-800 dark:text-slate-100 min-h-screen select-none transition-colors">
+    <aside className="flex flex-col w-64 bg-white/90 dark:bg-slate-900/90 border-r border-slate-200/90 dark:border-slate-800/80 text-slate-800 dark:text-slate-100 min-h-screen select-none transition-colors duration-300 backdrop-blur-md shadow-sm">
       {/* Brand Logo */}
-      <div className="p-6 border-b border-slate-100 dark:border-slate-900">
-        <Link href="/dashboard" className="flex items-center space-x-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Zap className="w-4 h-4 text-white" />
+      <div className="p-6 border-b border-slate-200/60 dark:border-slate-800/60">
+        <Link href="/dashboard" className="flex items-center space-x-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-md shadow-blue-500/20">
+            <Zap className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white font-serif">
-              Churn<span className="text-blue-600 dark:text-blue-500 font-sans">AI</span>
+            <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white font-serif">
+              Churn<span className="text-blue-600 dark:text-blue-400 font-sans">AI</span>
             </h1>
-            <div className="text-[10px] text-slate-400 dark:text-slate-400 font-mono">ENTERPRISE SAAS</div>
+            <div className="text-[10px] font-bold text-slate-400 dark:text-slate-400 font-mono tracking-wider">ENTERPRISE SAAS</div>
           </div>
         </Link>
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 px-4 py-6 space-y-1">
-        <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 mb-2">
+      <nav className="flex-1 px-4 py-6 space-y-1.5">
+        <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 mb-3">
           Platform Navigation
         </div>
         {navItems.map((item) => {
@@ -56,8 +56,8 @@ export default function Sidebar({ userRole }: { userRole: string }) {
               href={item.href}
               className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 ${
                 isActive
-                  ? 'bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 shadow-sm font-semibold'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-slate-200 border border-transparent'
+                  ? 'bg-blue-600/10 border border-blue-500/30 text-blue-700 dark:text-blue-400 shadow-sm font-semibold'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100 border border-transparent'
               }`}
             >
               <div className="flex items-center space-x-3">
@@ -71,9 +71,9 @@ export default function Sidebar({ userRole }: { userRole: string }) {
       </nav>
 
       {/* Active Role Indicator Card */}
-      <div className="p-4 m-4 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl">
-        <div className="flex items-center space-x-2 text-xs text-slate-700 dark:text-slate-300 font-semibold mb-1">
-          <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+      <div className="p-4 m-4 bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs">
+        <div className="flex items-center space-x-2 text-xs text-slate-800 dark:text-slate-200 font-bold mb-1">
+          <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           <span>Active Role</span>
         </div>
         <div className="text-xs text-slate-500 dark:text-slate-400 font-mono capitalize">
@@ -82,10 +82,10 @@ export default function Sidebar({ userRole }: { userRole: string }) {
       </div>
 
       {/* Footer / Sign out */}
-      <div className="p-4 border-t border-slate-100 dark:border-slate-900">
+      <div className="p-4 border-t border-slate-200/60 dark:border-slate-800/60">
         <button
           onClick={handleLogout}
-          className="flex items-center space-x-3 px-3 py-2 w-full rounded-xl text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+          className="flex items-center space-x-3 px-3 py-2.5 w-full rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 transition-colors"
         >
           <LogOut className="w-4 h-4" />
           <span>Sign Out</span>

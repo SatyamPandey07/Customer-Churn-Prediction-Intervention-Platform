@@ -54,15 +54,15 @@ export default function ClientDashboard({ initialCustomers }: { initialCustomers
   const getTierBadge = (tier: string | null) => {
     switch (tier?.toLowerCase()) {
       case 'critical':
-        return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30';
+        return 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/30';
       case 'high':
-        return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30';
+        return 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/30';
       case 'medium':
-        return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30';
+        return 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30';
       case 'low':
-        return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30';
+        return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30';
       default:
-        return 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700';
+        return 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400 border-slate-200 dark:border-slate-700';
     }
   };
 
@@ -116,60 +116,60 @@ export default function ClientDashboard({ initialCustomers }: { initialCustomers
     <div className="space-y-6">
       {/* Metric Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl backdrop-blur-xl shadow-sm relative overflow-hidden transition-colors">
+        <div className="bg-white/95 dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 p-5 rounded-2xl backdrop-blur-xl shadow-sm relative overflow-hidden transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">MRR at Risk</span>
-            <div className="p-2 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">MRR at Risk</span>
+            <div className="p-2.5 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400">
               <DollarSign className="w-5 h-5" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">${totalMrrAtRisk.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-          <div className="mt-1 text-xs text-red-600 dark:text-red-400 font-semibold flex items-center space-x-1">
+          <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">${totalMrrAtRisk.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+          <div className="mt-1 text-xs text-red-600 dark:text-red-400 font-bold flex items-center space-x-1">
             <span>Critical & High Tier MRR</span>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl backdrop-blur-xl shadow-sm relative overflow-hidden transition-colors">
+        <div className="bg-white/95 dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 p-5 rounded-2xl backdrop-blur-xl shadow-sm relative overflow-hidden transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Critical Customers</span>
-            <div className="p-2 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Critical Customers</span>
+            <div className="p-2.5 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400">
               <AlertTriangle className="w-5 h-5" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">{criticalCount} Accounts</div>
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">Require Immediate Intervention</div>
+          <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">{criticalCount} Accounts</div>
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-semibold">Require Immediate Intervention</div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl backdrop-blur-xl shadow-sm relative overflow-hidden transition-colors">
+        <div className="bg-white/95 dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 p-5 rounded-2xl backdrop-blur-xl shadow-sm relative overflow-hidden transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Avg Churn Probability</span>
-            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Avg Churn Probability</span>
+            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
               <TrendingUp className="w-5 h-5" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">{avgRisk}%</div>
-          <div className="mt-1 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">Across {customers.length} Accounts</div>
+          <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">{avgRisk}%</div>
+          <div className="mt-1 text-xs text-emerald-600 dark:text-emerald-400 font-bold">Across {customers.length} Accounts</div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl backdrop-blur-xl shadow-sm relative overflow-hidden transition-colors">
+        <div className="bg-white/95 dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 p-5 rounded-2xl backdrop-blur-xl shadow-sm relative overflow-hidden transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">AI Retention Engine</span>
-            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">AI Retention Engine</span>
+            <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
               <Sparkles className="w-5 h-5" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">XGBoost + Gemini</div>
-          <div className="mt-1 text-xs text-purple-600 dark:text-purple-300 font-semibold">SHAP Explainability Active</div>
+          <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">XGBoost + Gemini</div>
+          <div className="mt-1 text-xs text-purple-600 dark:text-purple-300 font-bold">SHAP Explainability Active</div>
         </div>
       </div>
 
       {/* Main Customers Table Container */}
-      <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 backdrop-blur-xl shadow-sm transition-colors">
+      <div className="bg-white/95 dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 backdrop-blur-xl shadow-sm transition-colors">
         {/* Controls Bar */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Churn Risk Telemetry</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Real-time XGBoost risk predictions & automated SHAP driver rankings</p>
+            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">Churn Risk Telemetry</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Real-time XGBoost risk predictions & automated SHAP driver rankings</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -179,14 +179,14 @@ export default function ClientDashboard({ initialCustomers }: { initialCustomers
               placeholder="Filter by ID or Plan..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 rounded-xl px-3.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
 
             {/* Risk Tier Filter */}
             <select
               value={tierFilter}
               onChange={e => setTierFilter(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-300 text-xs rounded-xl px-3.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-300 text-xs rounded-xl px-3.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
             >
               <option value="all">All Tiers</option>
               <option value="critical">Critical (&gt;75%)</option>
@@ -201,7 +201,7 @@ export default function ClientDashboard({ initialCustomers }: { initialCustomers
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <tr className="border-b border-slate-200 dark:border-slate-800 text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 <th className="py-3 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white" onClick={() => handleSort('id')}>Customer ID</th>
                 <th className="py-3 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white" onClick={() => handleSort('plan')}>Plan Tier</th>
                 <th className="py-3 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white" onClick={() => handleSort('mrr')}>Monthly Revenue</th>
@@ -214,26 +214,26 @@ export default function ClientDashboard({ initialCustomers }: { initialCustomers
               {sorted.map(c => (
                 <tr 
                   key={c.id}
-                  className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors group cursor-pointer"
+                  className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group cursor-pointer"
                   onClick={() => setSelectedCustomer(c)}
                 >
-                  <td className="py-3.5 px-4 font-mono text-slate-900 dark:text-slate-200 font-semibold">
+                  <td className="py-3.5 px-4 font-mono text-slate-900 dark:text-slate-200 font-bold">
                     {c.id.slice(0, 18)}...
                   </td>
                   <td className="py-3.5 px-4">
-                    <span className="capitalize px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-medium text-[11px]">
+                    <span className="capitalize px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-300 font-semibold text-[11px]">
                       {c.plan || 'basic'}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 text-slate-900 dark:text-slate-100 font-semibold">
+                  <td className="py-3.5 px-4 text-slate-900 dark:text-slate-100 font-bold">
                     ${(c.mrr || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </td>
                   <td className="py-3.5 px-4">
                     <div className="flex items-center space-x-2">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase border ${getTierBadge(c.churn_risk_tier)}`}>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase border ${getTierBadge(c.churn_risk_tier)}`}>
                         {c.churn_risk_tier || 'LOW'}
                       </span>
-                      <span className="font-semibold text-slate-700 dark:text-slate-300">
+                      <span className="font-bold text-slate-800 dark:text-slate-200">
                         {c.churn_probability !== null ? (c.churn_probability * 100).toFixed(1) + '%' : '--'}
                       </span>
                     </div>
@@ -257,7 +257,7 @@ export default function ClientDashboard({ initialCustomers }: { initialCustomers
                         e.stopPropagation();
                         setSelectedCustomer(c);
                       }}
-                      className="px-3 py-1 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-semibold transition-all flex items-center space-x-1 ml-auto"
+                      className="px-3 py-1 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 text-blue-700 dark:text-blue-400 rounded-lg text-xs font-bold transition-all flex items-center space-x-1 ml-auto"
                     >
                       <span>Inspect Risk</span>
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -282,24 +282,24 @@ export default function ClientDashboard({ initialCustomers }: { initialCustomers
             </button>
 
             <div>
-              <div className="flex items-center space-x-2 text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">
+              <div className="flex items-center space-x-2 text-xs font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">
                 <Sparkles className="w-4 h-4 text-blue-500" />
                 <span>Gemini & SHAP Risk Analysis</span>
               </div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-white font-mono">{selectedCustomer.id}</h3>
               <div className="flex items-center space-x-3 mt-2 text-xs">
-                <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase border ${getTierBadge(selectedCustomer.churn_risk_tier)}`}>
+                <span className={`px-2.5 py-0.5 rounded-full font-extrabold uppercase border ${getTierBadge(selectedCustomer.churn_risk_tier)}`}>
                   {selectedCustomer.churn_risk_tier} Risk Tier
                 </span>
-                <span className="text-slate-700 dark:text-slate-300 font-semibold">
+                <span className="text-slate-800 dark:text-slate-200 font-bold">
                   Probability: {((selectedCustomer.churn_probability || 0) * 100).toFixed(1)}%
                 </span>
-                <span className="text-slate-500 dark:text-slate-400">MRR: ${selectedCustomer.mrr.toFixed(2)}</span>
+                <span className="text-slate-500 dark:text-slate-400 font-medium">MRR: ${selectedCustomer.mrr.toFixed(2)}</span>
               </div>
             </div>
 
             {outreachSuccess && (
-              <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 p-3 rounded-xl text-xs flex items-center space-x-2 font-semibold">
+              <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 p-3 rounded-xl text-xs flex items-center space-x-2 font-bold">
                 <CheckCircle className="w-4 h-4 flex-shrink-0" />
                 <span>{outreachSuccess}</span>
               </div>
@@ -307,12 +307,12 @@ export default function ClientDashboard({ initialCustomers }: { initialCustomers
 
             {/* Top SHAP Drivers */}
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-slate-500 dark:text-slate-300 uppercase tracking-wider">Top Churn Signal Drivers (SHAP Rankings)</h4>
+              <h4 className="text-xs font-extrabold text-slate-500 dark:text-slate-300 uppercase tracking-wider">Top Churn Signal Drivers (SHAP Rankings)</h4>
               <div className="space-y-2">
                 {explanation?.top_drivers?.map((driver: any, idx: number) => (
                   <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/80 rounded-xl flex items-start justify-between">
                     <div className="space-y-0.5">
-                      <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">{driver.human_readable}</div>
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200">{driver.human_readable}</div>
                       <div className="text-[10px] text-slate-400 font-mono">Feature ID: {driver.feature}</div>
                     </div>
                     <span className="text-xs font-mono font-bold text-red-600 dark:text-red-400 bg-red-500/10 px-2 py-0.5 rounded-lg border border-red-500/20">
@@ -325,12 +325,12 @@ export default function ClientDashboard({ initialCustomers }: { initialCustomers
 
             {/* Gemini Intervention Strategy */}
             <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl space-y-2">
-              <div className="flex items-center space-x-2 text-xs font-bold text-blue-700 dark:text-blue-300">
+              <div className="flex items-center space-x-2 text-xs font-extrabold text-blue-700 dark:text-blue-300">
                 <Sparkles className="w-4 h-4 text-blue-500" />
                 <span>Gemini Recommended Strategy</span>
               </div>
-              <div className="text-xs font-semibold text-slate-900 dark:text-white">{explanation?.intervention_recommendation?.strategy}</div>
-              <p className="text-xs text-slate-700 dark:text-slate-300 italic bg-white dark:bg-slate-950/60 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/80">
+              <div className="text-xs font-bold text-slate-900 dark:text-white">{explanation?.intervention_recommendation?.strategy}</div>
+              <p className="text-xs text-slate-800 dark:text-slate-300 italic bg-white dark:bg-slate-950/60 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/80">
                 "{explanation?.intervention_recommendation?.copy}"
               </p>
             </div>
@@ -341,7 +341,7 @@ export default function ClientDashboard({ initialCustomers }: { initialCustomers
               <div className="grid grid-cols-3 gap-3">
                 <button
                   onClick={() => handleSendOutreach('email')}
-                  className="py-2.5 px-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center space-x-2 shadow-lg shadow-blue-500/20"
+                  className="py-2.5 px-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2 shadow-md shadow-blue-500/20"
                 >
                   <Mail className="w-4 h-4" />
                   <span>Send Email Offer</span>
@@ -349,7 +349,7 @@ export default function ClientDashboard({ initialCustomers }: { initialCustomers
 
                 <button
                   onClick={() => handleSendOutreach('slack')}
-                  className="py-2.5 px-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center space-x-2 shadow-lg shadow-purple-500/20"
+                  className="py-2.5 px-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2 shadow-md shadow-purple-500/20"
                 >
                   <Send className="w-4 h-4" />
                   <span>Slack Alert</span>
@@ -357,7 +357,7 @@ export default function ClientDashboard({ initialCustomers }: { initialCustomers
 
                 <button
                   onClick={() => handleSendOutreach('in_app')}
-                  className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center space-x-2 shadow-lg shadow-emerald-500/20"
+                  className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2 shadow-md shadow-emerald-500/20"
                 >
                   <MessageSquare className="w-4 h-4" />
                   <span>In-App Banner</span>
