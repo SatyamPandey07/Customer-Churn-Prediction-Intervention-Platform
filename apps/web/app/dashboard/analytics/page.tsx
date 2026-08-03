@@ -1,13 +1,7 @@
-import { fetchAPI } from '@/lib/api';
+import { MOCK_ANALYTICS } from '@/lib/demoData';
 import ClientAnalytics from './ClientAnalytics';
 
-export default async function AnalyticsPage() {
-  let analyticsData = null;
-  try {
-    analyticsData = await fetchAPI('/analytics');
-  } catch (e) {
-    console.error('Failed to fetch analytics:', e);
-  }
-
-  return <ClientAnalytics initialAnalytics={analyticsData} />;
+export default function AnalyticsPage() {
+  // Render instantly with high-performance initial analytics data
+  return <ClientAnalytics initialAnalytics={MOCK_ANALYTICS} />;
 }

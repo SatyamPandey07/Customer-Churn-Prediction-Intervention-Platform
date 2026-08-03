@@ -49,16 +49,12 @@ export default function ClientCampaigns({ initialCampaigns = [], userRole }: { i
     }));
   };
 
-  const deleteCampaign = (id: string) => {
-    setCampaigns(campaigns.filter(c => c.id !== id));
-  };
-
   const getChannelIcon = (ch: string) => {
     switch (ch) {
-      case 'email': return <Mail className="w-4 h-4 text-blue-400" />;
-      case 'slack': return <Send className="w-4 h-4 text-purple-400" />;
-      case 'sms': return <MessageSquare className="w-4 h-4 text-emerald-400" />;
-      default: return <Sparkles className="w-4 h-4 text-amber-400" />;
+      case 'email': return <Mail className="w-4 h-4 text-blue-500" />;
+      case 'slack': return <Send className="w-4 h-4 text-purple-500" />;
+      case 'sms': return <MessageSquare className="w-4 h-4 text-emerald-500" />;
+      default: return <Sparkles className="w-4 h-4 text-amber-500" />;
     }
   };
 
@@ -67,14 +63,14 @@ export default function ClientCampaigns({ initialCampaigns = [], userRole }: { i
       {/* Top Banner */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Automated Retention Campaigns</h2>
-          <p className="text-xs text-slate-400 mt-1">Configure automated outreach triggers for customers matching specific XGBoost risk thresholds.</p>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Automated Retention Campaigns</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Configure automated outreach triggers for customers matching specific XGBoost risk thresholds.</p>
         </div>
 
         {canEdit && (
           <button
             onClick={() => setShowForm(!showForm)}
-            className="py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-blue-500/20 transition-all flex items-center space-x-2"
+            className="py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-blue-500/20 transition-all flex items-center space-x-2"
           >
             <Plus className="w-4 h-4" />
             <span>Create New Campaign</span>
@@ -83,7 +79,7 @@ export default function ClientCampaigns({ initialCampaigns = [], userRole }: { i
       </div>
 
       {successMsg && (
-        <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-3.5 rounded-xl text-xs flex items-center space-x-2">
+        <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 p-3.5 rounded-xl text-xs flex items-center space-x-2 font-semibold">
           <Check className="w-4 h-4 flex-shrink-0" />
           <span>{successMsg}</span>
         </div>
@@ -91,35 +87,35 @@ export default function ClientCampaigns({ initialCampaigns = [], userRole }: { i
 
       {/* Campaign Builder Form */}
       {showForm && (
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 backdrop-blur-xl shadow-2xl space-y-4">
-          <div className="flex justify-between items-center pb-3 border-b border-slate-800">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center space-x-2">
-              <Sparkles className="w-4 h-4 text-blue-400" />
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 backdrop-blur-xl shadow-xl space-y-4 transition-colors">
+          <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center space-x-2">
+              <Sparkles className="w-4 h-4 text-blue-500" />
               <span>Campaign Builder Workflow</span>
             </h3>
-            <button onClick={() => setShowForm(false)} className="text-xs text-slate-400 hover:text-white">Cancel</button>
+            <button onClick={() => setShowForm(false)} className="text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white">Cancel</button>
           </div>
 
           <form onSubmit={handleCreate} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Campaign Title</label>
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1">Campaign Title</label>
               <input
                 type="text"
                 required
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="e.g. Enterprise Save Offer - Critical Churn Risk"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:ring-1 focus:ring-blue-500 focus:outline-none"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Target Risk Tier</label>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1">Target Risk Tier</label>
                 <select
                   value={riskTier}
                   onChange={e => setRiskTier(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-xs text-slate-100 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-slate-100 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                 >
                   <option value="critical">Critical Risk (&gt;75%)</option>
                   <option value="high">High Risk (50-75%)</option>
@@ -128,19 +124,19 @@ export default function ClientCampaigns({ initialCampaigns = [], userRole }: { i
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Min. Monthly Revenue ($)</label>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1">Min. Monthly Revenue ($)</label>
                 <input
                   type="number"
                   value={mrrGt}
                   onChange={e => setMrrGt(e.target.value)}
                   placeholder="500"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-xs text-slate-100 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-slate-100 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Outreach Channel Adapter</label>
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1">Outreach Channel Adapter</label>
               <div className="grid grid-cols-4 gap-2">
                 {[
                   { id: 'email', label: 'Email', icon: Mail },
@@ -155,10 +151,10 @@ export default function ClientCampaigns({ initialCampaigns = [], userRole }: { i
                       type="button"
                       key={ch.id}
                       onClick={() => setChannel(ch.id as any)}
-                      className={`py-2 px-3 rounded-lg text-xs font-medium border flex items-center justify-center space-x-2 transition-all ${
+                      className={`py-2 px-3 rounded-xl text-xs font-medium border flex items-center justify-center space-x-2 transition-all ${
                         isSel 
-                          ? 'bg-blue-600/20 border-blue-500 text-blue-300' 
-                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                          ? 'bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400 font-semibold' 
+                          : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
                       }`}
                     >
                       <Icon className="w-3.5 h-3.5" />
@@ -170,12 +166,12 @@ export default function ClientCampaigns({ initialCampaigns = [], userRole }: { i
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Intervention Message Template</label>
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1">Intervention Message Template</label>
               <textarea
                 rows={3}
                 value={template}
                 onChange={e => setTemplate(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-slate-100 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs text-slate-800 dark:text-slate-100 focus:ring-1 focus:ring-blue-500 focus:outline-none"
               />
             </div>
 
@@ -193,17 +189,17 @@ export default function ClientCampaigns({ initialCampaigns = [], userRole }: { i
       {/* Active Campaigns List */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {campaigns.map(cmp => (
-          <div key={cmp.id} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 backdrop-blur-xl space-y-4 shadow-xl">
+          <div key={cmp.id} className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 backdrop-blur-xl space-y-4 shadow-sm transition-colors">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <div className="flex items-center space-x-2">
-                  <span className="p-1.5 rounded-lg bg-slate-950 border border-slate-800">
+                  <span className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                     {getChannelIcon(cmp.channel)}
                   </span>
-                  <h3 className="text-sm font-bold text-white">{cmp.name}</h3>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">{cmp.name}</h3>
                 </div>
-                <div className="text-[11px] text-slate-400 font-mono">
-                  Trigger: Risk = <span className="text-red-400 uppercase font-semibold">{cmp.trigger_rule.risk_tier}</span> 
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                  Trigger: Risk = <span className="text-red-600 dark:text-red-400 uppercase font-semibold">{cmp.trigger_rule.risk_tier}</span> 
                   {cmp.trigger_rule.mrr_gt ? ` & MRR > $${cmp.trigger_rule.mrr_gt}` : ''}
                 </div>
               </div>
@@ -211,8 +207,8 @@ export default function ClientCampaigns({ initialCampaigns = [], userRole }: { i
               <div className="flex items-center space-x-2">
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
                   cmp.status === 'active' 
-                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
-                    : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' 
+                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
                 }`}>
                   {cmp.status}
                 </span>
@@ -220,25 +216,25 @@ export default function ClientCampaigns({ initialCampaigns = [], userRole }: { i
                 {canEdit && (
                   <button
                     onClick={() => toggleStatus(cmp.id)}
-                    className="p-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-400 transition-colors"
+                    className="p-1.5 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-500 transition-colors"
                     title={cmp.status === 'active' ? 'Pause' : 'Activate'}
                   >
-                    {cmp.status === 'active' ? <Pause className="w-3.5 h-3.5 text-yellow-400" /> : <Play className="w-3.5 h-3.5 text-emerald-400" />}
+                    {cmp.status === 'active' ? <Pause className="w-3.5 h-3.5 text-amber-500" /> : <Play className="w-3.5 h-3.5 text-emerald-500" />}
                   </button>
                 )}
               </div>
             </div>
 
-            <p className="text-xs text-slate-300 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 italic">
+            <p className="text-xs text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-950/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800/80 italic">
               "{cmp.template}"
             </p>
 
-            <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-800/60 text-slate-400">
+            <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100 dark:border-slate-800/60 text-slate-500 dark:text-slate-400">
               <div>
-                Outreach Executed: <span className="font-semibold text-slate-200">{cmp.sent_count}</span>
+                Outreach Executed: <span className="font-semibold text-slate-900 dark:text-slate-200">{cmp.sent_count}</span>
               </div>
               <div>
-                Retention Rate: <span className="font-semibold text-emerald-400">
+                Retention Rate: <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                   {cmp.sent_count > 0 ? ((cmp.retained_count / cmp.sent_count) * 100).toFixed(0) + '%' : '74%'}
                 </span>
               </div>
