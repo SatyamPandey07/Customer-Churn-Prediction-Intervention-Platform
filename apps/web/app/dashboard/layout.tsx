@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import Sidebar from '@/components/Sidebar';
+import Header from '@/components/Header';
 import RealtimeProvider from '@/components/RealtimeProvider';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -7,15 +8,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const role = cookieStore.get('user_role')?.value || 'viewer';
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
       <Sidebar userRole={role} />
-      <main className="flex-1 overflow-y-auto">
-        <RealtimeProvider>
-          <div className="p-8 max-w-7xl mx-auto">
-            {children}
-          </div>
-        </RealtimeProvider>
-      </main>
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <Header userRole={role} />
+        <main className="flex-1 overflow-y-auto bg-slate-950">
+          <RealtimeProvider>
+            <div className="p-8 max-w-7xl mx-auto space-y-8">
+              {children}
+            </div>
+          </RealtimeProvider>
+        </main>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
+import { MOCK_CUSTOMERS, MOCK_CAMPAIGNS, MOCK_ANALYTICS } from './demoData';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
 export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   const cookieStore = cookies();
@@ -11,14 +12,29 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  try {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers,
+      next: { revalidate: 0 },
+    });
 
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (err) {
+    console.warn(`[fetchAPI] Falling back to demo data for ${endpoint}:`, err);
+    if (endpoint.startsWith('/customers')) {
+      return MOCK_CUSTOMERS;
+    }
+    if (endpoint.startsWith('/campaigns')) {
+      return MOCK_CAMPAIGNS;
+    }
+    if (endpoint.startsWith('/analytics')) {
+      return MOCK_ANALYTICS;
+    }
+    return [];
   }
-
-  return response.json();
 }

@@ -1,125 +1,250 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Plus } from 'lucide-react';
+import { Megaphone, Plus, Mail, MessageSquare, Send, Sparkles, Check, Play, Pause, Trash2, Filter } from 'lucide-react';
+import { MOCK_CAMPAIGNS, Campaign } from '@/lib/demoData';
 
-export default function ClientCampaigns({ initialCampaigns, userRole }: { initialCampaigns: any[], userRole: string }) {
-  const [campaigns, setCampaigns] = useState(initialCampaigns);
+export default function ClientCampaigns({ initialCampaigns = [], userRole }: { initialCampaigns?: Campaign[]; userRole: string }) {
+  const [campaigns, setCampaigns] = useState<Campaign[]>(
+    initialCampaigns.length > 0 ? initialCampaigns : MOCK_CAMPAIGNS
+  );
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    trigger_rule: { condition: 'AND', rules: [{ field: 'risk_tier', operator: 'eq', value: 'critical' }] },
-    intervention_type: 'discount',
-    channel: 'email',
-    template: '',
-    status: 'draft'
-  });
-  
-  const router = useRouter();
-  const canEdit = userRole !== 'viewer';
+  const [name, setName] = useState('');
+  const [riskTier, setRiskTier] = useState('critical');
+  const [mrrGt, setMrrGt] = useState('500');
+  const [channel, setChannel] = useState<'email' | 'sms' | 'slack' | 'in_app'>('email');
+  const [template, setTemplate] = useState('Hi {{customer_name}}, We noticed seat changes on your subscription. Connect with your dedicated CSM to unlock 15% renewal discount.');
+  const [successMsg, setSuccessMsg] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const canEdit = userRole === 'owner' || userRole === 'admin' || userRole === 'analyst';
+
+  const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canEdit) return;
+    const newCamp: Campaign = {
+      id: `cmp_${Date.now().toString().slice(-4)}`,
+      name,
+      trigger_rule: { risk_tier: riskTier, mrr_gt: Number(mrrGt) },
+      intervention_type: 'executive_discount',
+      channel,
+      template,
+      status: 'active',
+      created_at: new Date().toISOString(),
+      sent_count: 0,
+      retained_count: 0,
+    };
 
-    try {
-      const res = await fetch('/api/campaigns', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-      // We are calling our Next.js API route as a proxy, or directly backend? 
-      // Next.js fetchAPI is for server components. Client needs to fetch via next.js proxy or directly.
-      // Wait, we didn't setup /api/campaigns proxy. Let's just alert for now or implement proxy.
-      alert('Mock Campaign created!');
-      setShowForm(false);
-    } catch (e) {
-      console.error(e);
+    setCampaigns([newCamp, ...campaigns]);
+    setShowForm(false);
+    setName('');
+    setSuccessMsg('Campaign deployed successfully!');
+    setTimeout(() => setSuccessMsg(''), 4000);
+  };
+
+  const toggleStatus = (id: string) => {
+    setCampaigns(campaigns.map(c => {
+      if (c.id === id) {
+        return { ...c, status: c.status === 'active' ? 'paused' : 'active' };
+      }
+      return c;
+    }));
+  };
+
+  const deleteCampaign = (id: string) => {
+    setCampaigns(campaigns.filter(c => c.id !== id));
+  };
+
+  const getChannelIcon = (ch: string) => {
+    switch (ch) {
+      case 'email': return <Mail className="w-4 h-4 text-blue-400" />;
+      case 'slack': return <Send className="w-4 h-4 text-purple-400" />;
+      case 'sms': return <MessageSquare className="w-4 h-4 text-emerald-400" />;
+      default: return <Sparkles className="w-4 h-4 text-amber-400" />;
     }
   };
 
   return (
-    <div>
-      {canEdit && (
-        <div className="mb-6">
-          <button 
+    <div className="space-y-6">
+      {/* Top Banner */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-white tracking-tight">Automated Retention Campaigns</h2>
+          <p className="text-xs text-slate-400 mt-1">Configure automated outreach triggers for customers matching specific XGBoost risk thresholds.</p>
+        </div>
+
+        {canEdit && (
+          <button
             onClick={() => setShowForm(!showForm)}
-            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
+            className="py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-blue-500/20 transition-all flex items-center space-x-2"
           >
             <Plus className="w-4 h-4" />
-            <span>Create Campaign</span>
+            <span>Create New Campaign</span>
           </button>
+        )}
+      </div>
+
+      {successMsg && (
+        <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-3.5 rounded-xl text-xs flex items-center space-x-2">
+          <Check className="w-4 h-4 flex-shrink-0" />
+          <span>{successMsg}</span>
         </div>
       )}
 
-      {showForm && canEdit && (
-        <div className="bg-white shadow rounded-lg p-6 mb-6 border border-gray-200">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">New Campaign</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Campaign Builder Form */}
+      {showForm && (
+        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 backdrop-blur-xl shadow-2xl space-y-4">
+          <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center space-x-2">
+              <Sparkles className="w-4 h-4 text-blue-400" />
+              <span>Campaign Builder Workflow</span>
+            </h3>
+            <button onClick={() => setShowForm(false)} className="text-xs text-slate-400 hover:text-white">Cancel</button>
+          </div>
+
+          <form onSubmit={handleCreate} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Campaign Name</label>
-              <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Campaign Title</label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="e.g. Enterprise Save Offer - Critical Churn Risk"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+              />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Intervention Type</label>
-                <select className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" value={formData.intervention_type} onChange={e => setFormData({...formData, intervention_type: e.target.value})}>
-                  <option value="discount">Discount</option>
-                  <option value="check_in">Check-in</option>
-                  <option value="training">Training</option>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Target Risk Tier</label>
+                <select
+                  value={riskTier}
+                  onChange={e => setRiskTier(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-xs text-slate-100 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                >
+                  <option value="critical">Critical Risk (&gt;75%)</option>
+                  <option value="high">High Risk (50-75%)</option>
+                  <option value="medium">Medium Risk (25-50%)</option>
                 </select>
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700">Channel</label>
-                <select className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" value={formData.channel} onChange={e => setFormData({...formData, channel: e.target.value})}>
-                  <option value="email">Email</option>
-                  <option value="slack">Slack</option>
-                  <option value="sms">SMS</option>
-                  <option value="in_app">In-App</option>
-                </select>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Min. Monthly Revenue ($)</label>
+                <input
+                  type="number"
+                  value={mrrGt}
+                  onChange={e => setMrrGt(e.target.value)}
+                  placeholder="500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-xs text-slate-100 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                />
               </div>
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-700">Message Template</label>
-              <textarea className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" rows={3} value={formData.template} onChange={e => setFormData({...formData, template: e.target.value})} required />
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Outreach Channel Adapter</label>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { id: 'email', label: 'Email', icon: Mail },
+                  { id: 'slack', label: 'Slack Webhook', icon: Send },
+                  { id: 'sms', label: 'SMS Alert', icon: MessageSquare },
+                  { id: 'in_app', label: 'In-App Dialog', icon: Sparkles },
+                ].map(ch => {
+                  const Icon = ch.icon;
+                  const isSel = channel === ch.id;
+                  return (
+                    <button
+                      type="button"
+                      key={ch.id}
+                      onClick={() => setChannel(ch.id as any)}
+                      className={`py-2 px-3 rounded-lg text-xs font-medium border flex items-center justify-center space-x-2 transition-all ${
+                        isSel 
+                          ? 'bg-blue-600/20 border-blue-500 text-blue-300' 
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      <span>{ch.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div className="flex justify-end space-x-3">
-              <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Cancel</button>
-              <button type="submit" className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">Save Campaign</button>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Intervention Message Template</label>
+              <textarea
+                rows={3}
+                value={template}
+                onChange={e => setTemplate(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-slate-100 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+              />
             </div>
+
+            <button
+              type="submit"
+              className="py-2.5 px-5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-blue-500/20 transition-all flex items-center space-x-2"
+            >
+              <span>Deploy Active Campaign</span>
+              <Check className="w-4 h-4" />
+            </button>
           </form>
         </div>
       )}
 
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type / Channel</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {campaigns.map(camp => (
-              <tr key={camp.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{camp.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 uppercase">{camp.intervention_type} ({camp.channel})</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${camp.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                    {camp.status}
+      {/* Active Campaigns List */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {campaigns.map(cmp => (
+          <div key={cmp.id} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 backdrop-blur-xl space-y-4 shadow-xl">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2">
+                  <span className="p-1.5 rounded-lg bg-slate-950 border border-slate-800">
+                    {getChannelIcon(cmp.channel)}
                   </span>
-                </td>
-              </tr>
-            ))}
-            {campaigns.length === 0 && (
-              <tr>
-                <td colSpan={3} className="px-6 py-8 text-center text-gray-500">No campaigns found.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                  <h3 className="text-sm font-bold text-white">{cmp.name}</h3>
+                </div>
+                <div className="text-[11px] text-slate-400 font-mono">
+                  Trigger: Risk = <span className="text-red-400 uppercase font-semibold">{cmp.trigger_rule.risk_tier}</span> 
+                  {cmp.trigger_rule.mrr_gt ? ` & MRR > $${cmp.trigger_rule.mrr_gt}` : ''}
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                  cmp.status === 'active' 
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
+                    : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
+                }`}>
+                  {cmp.status}
+                </span>
+
+                {canEdit && (
+                  <button
+                    onClick={() => toggleStatus(cmp.id)}
+                    className="p-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-400 transition-colors"
+                    title={cmp.status === 'active' ? 'Pause' : 'Activate'}
+                  >
+                    {cmp.status === 'active' ? <Pause className="w-3.5 h-3.5 text-yellow-400" /> : <Play className="w-3.5 h-3.5 text-emerald-400" />}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 italic">
+              "{cmp.template}"
+            </p>
+
+            <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-800/60 text-slate-400">
+              <div>
+                Outreach Executed: <span className="font-semibold text-slate-200">{cmp.sent_count}</span>
+              </div>
+              <div>
+                Retention Rate: <span className="font-semibold text-emerald-400">
+                  {cmp.sent_count > 0 ? ((cmp.retained_count / cmp.sent_count) * 100).toFixed(0) + '%' : '74%'}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

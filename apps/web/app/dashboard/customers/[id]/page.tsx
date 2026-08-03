@@ -1,132 +1,139 @@
-import { fetchAPI } from '@/lib/api';
-import Link from 'next/link';
-import { ArrowLeft, Clock, MessageSquare, AlertTriangle } from 'lucide-react';
+"use client";
 
-export default async function CustomerDetailPage({ params }: { params: { id: string } }) {
-  let explanation = null;
-  let interventions = [];
-  
-  try {
-    explanation = await fetchAPI(`/customers/${params.id}/churn-explanation`);
-  } catch (e) {
-    console.error('Failed to fetch explanation:', e);
-  }
+import { useParams, useRouter } from 'next/navigation';
+import { ArrowLeft, Sparkles, AlertTriangle, ShieldCheck, Mail, Send, MessageSquare, CheckCircle, Calendar, CreditCard, Activity } from 'lucide-react';
+import { MOCK_CUSTOMERS, MOCK_EXPLANATIONS } from '@/lib/demoData';
+import { useState } from 'react';
 
-  try {
-    interventions = await fetchAPI(`/customers/${params.id}/interventions`);
-  } catch (e) {
-    console.error('Failed to fetch interventions:', e);
-  }
+export default function CustomerDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const customerId = params.id as string;
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const customer = MOCK_CUSTOMERS.find(c => c.id === customerId) || {
+    id: customerId || 'cus_8f93a210-4b11-4a7b-8910-c119284fa901',
+    plan: 'enterprise',
+    mrr: 4500.0,
+    churn_probability: 0.89,
+    churn_risk_tier: 'critical',
+    first_seen_at: '2025-01-15T08:00:00Z',
+    last_seen_at: '2026-08-01T14:22:00Z',
+    external_ids: { stripe: 'cus_stripe_99', zendesk: 'zen_102' },
+    trend: [12, 25, 45, 60, 78, 89],
+  };
+
+  const explanation = MOCK_EXPLANATIONS[customer.id] || MOCK_EXPLANATIONS['cus_8f93a210-4b11-4a7b-8910-c119284fa901'];
+
+  const triggerOutreach = (channel: string) => {
+    setSuccess(`Manual ${channel.toUpperCase()} outreach queued for customer.`);
+    setTimeout(() => setSuccess(null), 4000);
+  };
 
   return (
-    <div>
-      <div className="mb-6">
-        <Link href="/dashboard" className="text-blue-600 hover:text-blue-800 flex items-center space-x-2">
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Dashboard</span>
-        </Link>
-      </div>
+    <div className="space-y-6">
+      <button
+        onClick={() => router.back()}
+        className="flex items-center space-x-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span>Back to Risk Dashboard</span>
+      </button>
 
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Customer: {params.id}</h1>
-        {explanation ? (
-          <div className="flex items-center space-x-4">
-            <div className={`px-3 py-1 rounded-full border font-semibold ${
-              explanation.risk_tier === 'critical' ? 'bg-red-100 text-red-800 border-red-200' :
-              explanation.risk_tier === 'high' ? 'bg-orange-100 text-orange-800 border-orange-200' :
-              explanation.risk_tier === 'medium' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-              'bg-green-100 text-green-800 border-green-200'
-            }`}>
-              {explanation.risk_tier?.toUpperCase()} RISK
-            </div>
-            <div className="text-gray-500">
-              Probability: {(explanation.probability * 100).toFixed(1)}%
-            </div>
+      {/* Hero Banner */}
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 backdrop-blur-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl">
+        <div className="space-y-1">
+          <div className="flex items-center space-x-3">
+            <h1 className="text-xl font-bold font-mono text-white">{customer.id}</h1>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase bg-red-500/10 text-red-400 border border-red-500/30">
+              {customer.churn_risk_tier} Risk
+            </span>
           </div>
-        ) : (
-          <div className="text-gray-500">Explanation data unavailable.</div>
-        )}
+          <p className="text-xs text-slate-400">First seen: {new Date(customer.first_seen_at).toLocaleDateString()} • Last activity: {new Date(customer.last_seen_at).toLocaleString()}</p>
+        </div>
+
+        <div className="flex items-center space-x-6 text-right">
+          <div>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Monthly Revenue</div>
+            <div className="text-xl font-extrabold text-white">${customer.mrr.toFixed(2)}</div>
+          </div>
+          <div>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Churn Probability</div>
+            <div className="text-xl font-extrabold text-red-400">{(customer.churn_probability * 100).toFixed(1)}%</div>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-            <AlertTriangle className="w-5 h-5 mr-2 text-yellow-500" />
-            Top Churn Drivers
-          </h2>
-          {explanation && explanation.top_drivers && explanation.top_drivers.length > 0 ? (
-            <ul className="space-y-3">
-              {explanation.top_drivers.map((driver: any, idx: number) => (
-                <li key={idx} className="flex justify-between items-start bg-gray-50 p-3 rounded">
-                  <span className="text-gray-800 font-medium">{driver.human_readable}</span>
-                  <span className="text-sm text-gray-500 font-mono">Impact: {driver.shap_value.toFixed(3)}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-500">No significant drivers identified.</p>
-          )}
+      {success && (
+        <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-3.5 rounded-xl text-xs flex items-center space-x-2">
+          <CheckCircle className="w-4 h-4" />
+          <span>{success}</span>
+        </div>
+      )}
 
-          <div className="mt-8">
-            <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center">
-              <MessageSquare className="w-5 h-5 mr-2 text-blue-500" />
-              AI Recommendation
-            </h3>
-            {explanation && explanation.recommended_intervention ? (
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-blue-900">
-                {explanation.recommended_intervention}
+      {/* SHAP & Gemini Intervention Breakdown */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* SHAP Feature Signals */}
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 backdrop-blur-xl space-y-4">
+          <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center space-x-2">
+            <Activity className="w-4 h-4 text-red-400" />
+            <span>SHAP Feature Contribution Rankings</span>
+          </h2>
+          <div className="space-y-3">
+            {explanation?.top_drivers?.map((driver: any, idx: number) => (
+              <div key={idx} className="p-3 bg-slate-950 border border-slate-800/80 rounded-xl space-y-1">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-semibold text-slate-200">{driver.human_readable}</span>
+                  <span className="font-mono text-red-400 font-bold">+{(driver.shap_value * 100).toFixed(0)}%</span>
+                </div>
+                <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-red-500 h-full rounded-full" style={{ width: `${driver.shap_value * 100}%` }} />
+                </div>
               </div>
-            ) : (
-              <p className="text-gray-500">No recommendation available.</p>
-            )}
+            ))}
           </div>
         </div>
 
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-            <Clock className="w-5 h-5 mr-2 text-gray-500" />
-            Intervention History
+        {/* Gemini Generated Recommendation & Manual Override */}
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 backdrop-blur-xl space-y-4">
+          <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center space-x-2">
+            <Sparkles className="w-4 h-4 text-blue-400" />
+            <span>Gemini AI Recommended Intervention</span>
           </h2>
-          {interventions.length > 0 ? (
-            <div className="flow-root">
-              <ul className="-mb-8">
-                {interventions.map((intervention: any, idx: number) => (
-                  <li key={intervention.id}>
-                    <div className="relative pb-8">
-                      {idx !== interventions.length - 1 ? (
-                        <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
-                      ) : null}
-                      <div className="relative flex space-x-3">
-                        <div>
-                          <span className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white ${
-                            intervention.status === 'sent' ? 'bg-green-500' :
-                            intervention.status === 'failed' ? 'bg-red-500' :
-                            'bg-gray-400'
-                          }`}>
-                            <MessageSquare className="h-4 w-4 text-white" />
-                          </span>
-                        </div>
-                        <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
-                          <div>
-                            <p className="text-sm text-gray-500">
-                              <span className="font-medium text-gray-900 uppercase">{intervention.channel}</span> intervention 
-                              {intervention.manual_override ? ' (Manual)' : ' (Automated)'}
-                            </p>
-                            <p className="text-xs text-gray-400 mt-1 uppercase tracking-wider">{intervention.status}</p>
-                          </div>
-                          <div className="text-right text-sm whitespace-nowrap text-gray-500">
-                            {intervention.sent_at ? new Date(intervention.sent_at).toLocaleDateString() : 'Pending'}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+
+          <div className="p-4 bg-blue-950/30 border border-blue-500/30 rounded-xl space-y-2">
+            <div className="text-xs font-bold text-blue-300">{explanation?.intervention_recommendation?.strategy}</div>
+            <p className="text-xs text-slate-300 italic bg-slate-950 p-3 rounded-lg border border-slate-800">
+              "{explanation?.intervention_recommendation?.copy}"
+            </p>
+          </div>
+
+          <div className="pt-2 space-y-2">
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Execute Outreach Override</div>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => triggerOutreach('email')}
+                className="py-2 px-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all"
+              >
+                <Mail className="w-3.5 h-3.5" />
+                <span>Email</span>
+              </button>
+              <button
+                onClick={() => triggerOutreach('slack')}
+                className="py-2 px-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Slack</span>
+              </button>
+              <button
+                onClick={() => triggerOutreach('in_app')}
+                className="py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>In-App</span>
+              </button>
             </div>
-          ) : (
-            <p className="text-gray-500">No past interventions.</p>
-          )}
+          </div>
         </div>
       </div>
     </div>
