@@ -23,6 +23,18 @@ export type Campaign = {
   retained_count: number;
 };
 
+export type Integration = {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  icon: string;
+  status: 'connected' | 'disconnected' | 'error';
+  last_sync: string | null;
+  events_count_24h: number;
+  config: Record<string, string>;
+};
+
 export const MOCK_CUSTOMERS: Customer[] = [
   {
     id: 'cus_8f93a210-4b11-4a7b-8910-c119284fa901',
@@ -157,6 +169,86 @@ export const MOCK_CAMPAIGNS: Campaign[] = [
     sent_count: 120,
     retained_count: 74,
   },
+];
+
+export const MOCK_INTEGRATIONS: Integration[] = [
+  {
+    id: 'stripe',
+    name: 'Stripe Billing & Subscriptions',
+    category: 'Billing & Payments',
+    description: 'Ingests subscription creation, plan upgrades, downgrades, invoice payments, and failed payment events.',
+    icon: 'stripe',
+    status: 'connected',
+    last_sync: '2026-08-03T11:45:00Z',
+    events_count_24h: 1420,
+    config: { api_key: 'sk_live_stripe_••••••••9821', webhook_secret: 'whsec_••••••••4412' }
+  },
+  {
+    id: 'segment',
+    name: 'Segment Customer Data Platform',
+    category: 'Product Analytics',
+    description: 'Ingests real-time user track events, page views, feature adoption, and user identify calls.',
+    icon: 'segment',
+    status: 'connected',
+    last_sync: '2026-08-03T11:50:00Z',
+    events_count_24h: 8940,
+    config: { write_key: 'seg_write_••••••••1102' }
+  },
+  {
+    id: 'amplitude',
+    name: 'Amplitude Behavioral Analytics',
+    category: 'Product Analytics',
+    description: 'Tracks session frequency, feature retention curves, and active user drop-off trends.',
+    icon: 'amplitude',
+    status: 'connected',
+    last_sync: '2026-08-03T11:30:00Z',
+    events_count_24h: 5120,
+    config: { api_key: 'amp_api_••••••••8819', secret_key: 'amp_sec_••••••••3311' }
+  },
+  {
+    id: 'zendesk',
+    name: 'Zendesk Customer Support',
+    category: 'Customer Success',
+    description: 'Ingests support ticket spikes, urgent ticket volume, resolution times, and CSAT scores.',
+    icon: 'zendesk',
+    status: 'connected',
+    last_sync: '2026-08-03T10:15:00Z',
+    events_count_24h: 340,
+    config: { subdomain: 'acme-support', api_token: 'zen_tok_••••••••5519' }
+  },
+  {
+    id: 'salesforce',
+    name: 'Salesforce CRM',
+    category: 'Sales & Accounts',
+    description: 'Syncs seat contract changes, renewal dates, executive contacts, and opportunity health.',
+    icon: 'salesforce',
+    status: 'disconnected',
+    last_sync: null,
+    events_count_24h: 0,
+    config: {}
+  },
+  {
+    id: 'hubspot',
+    name: 'HubSpot CRM & Marketing',
+    category: 'Sales & Accounts',
+    description: 'Tracks account lifecycle stages, email engagement, and deal status changes.',
+    icon: 'hubspot',
+    status: 'disconnected',
+    last_sync: null,
+    events_count_24h: 0,
+    config: {}
+  },
+  {
+    id: 'webhook',
+    name: 'Custom HTTP Webhook Endpoint',
+    category: 'Realtime API',
+    description: 'Stream custom JSON event payloads directly to ChurnAI\'s real-time ingestion pipeline.',
+    icon: 'webhook',
+    status: 'connected',
+    last_sync: '2026-08-03T11:52:00Z',
+    events_count_24h: 12800,
+    config: { endpoint_url: 'https://api.churn-platform.com/webhooks/v1/ingest', signing_secret: 'wh_sign_••••••••9901' }
+  }
 ];
 
 export const MOCK_ANALYTICS = {

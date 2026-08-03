@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { MOCK_CUSTOMERS, MOCK_CAMPAIGNS, MOCK_ANALYTICS } from './demoData';
+import { MOCK_CUSTOMERS, MOCK_CAMPAIGNS, MOCK_ANALYTICS, MOCK_INTEGRATIONS } from './demoData';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
@@ -34,6 +34,9 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     }
     if (endpoint.startsWith('/analytics')) {
       return MOCK_ANALYTICS;
+    }
+    if (endpoint.startsWith('/integrations')) {
+      return MOCK_INTEGRATIONS;
     }
     return [];
   }

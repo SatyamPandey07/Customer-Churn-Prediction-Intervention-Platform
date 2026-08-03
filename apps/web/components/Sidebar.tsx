@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Megaphone, BarChart3, LogOut, Sparkles, ShieldCheck, Zap } from 'lucide-react';
+import { LayoutDashboard, Megaphone, BarChart3, Plug, LogOut, Sparkles, ShieldCheck, Zap } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Campaigns', href: '/dashboard/campaigns', icon: Megaphone },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+  { name: 'Integrations', href: '/dashboard/integrations', icon: Plug },
 ];
 
 export default function Sidebar({ userRole }: { userRole: string }) {

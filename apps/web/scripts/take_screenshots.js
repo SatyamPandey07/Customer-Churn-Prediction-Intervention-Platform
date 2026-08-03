@@ -35,19 +35,26 @@ const fs = require('fs');
 
   try {
     await page.waitForSelector('text=Churn Risk Telemetry', { timeout: 10000 });
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(1500);
 
     console.log('Taking screenshot of Dashboard...');
     await page.screenshot({ path: path.join(dir, 'dashboard.png') });
 
     console.log('Navigating to Campaigns page...');
     await page.click('text=Campaigns');
-    
     await page.waitForSelector('text=Automated Retention Campaigns', { timeout: 10000 });
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(1500);
 
     console.log('Taking screenshot of Campaigns...');
     await page.screenshot({ path: path.join(dir, 'campaigns.png') });
+
+    console.log('Navigating to Integrations page...');
+    await page.click('text=Integrations');
+    await page.waitForSelector('text=Data Source Connectors', { timeout: 10000 });
+    await page.waitForTimeout(1500);
+
+    console.log('Taking screenshot of Integrations...');
+    await page.screenshot({ path: path.join(dir, 'integrations.png') });
   } catch (e) {
     console.log('Error occurred, taking debug screenshot...');
     await page.screenshot({ path: path.join(dir, 'error.png') });
