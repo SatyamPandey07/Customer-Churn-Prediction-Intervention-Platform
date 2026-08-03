@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
 
+// Required for output: 'export' — unused in static mode
+export function generateStaticParams() {
+  return [];
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
 export async function POST(

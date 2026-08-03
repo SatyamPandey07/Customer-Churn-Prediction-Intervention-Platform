@@ -20,8 +20,10 @@ export default function Sidebar({ userRole }: { userRole: string }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
+  const handleLogout = () => {
+    // Clear auth cookies client-side
+    document.cookie = 'access_token=; path=/; max-age=0; SameSite=Strict';
+    document.cookie = 'user_role=; path=/; max-age=0; SameSite=Strict';
     router.push('/login');
   };
 
@@ -31,11 +33,11 @@ export default function Sidebar({ userRole }: { userRole: string }) {
       <div className="p-6 border-b border-slate-200/60 dark:border-slate-800/60">
         <Link href="/dashboard" className="flex items-center space-x-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-md shadow-blue-500/20 flex-shrink-0">
-            <Zap className="w-5 h-5 text-white" />
+            <ShieldCheck className="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white font-serif leading-none">
-              churn<span className="text-blue-600 dark:text-blue-400 font-sans">.ai</span>
+              ChurnGuard<span className="text-blue-600 dark:text-blue-400 font-sans">.AI</span>
             </h1>
           </div>
         </Link>

@@ -10,8 +10,9 @@ export default function Header({ userRole }: { userRole: string }) {
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
 
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
+  const handleLogout = () => {
+    document.cookie = 'access_token=; path=/; max-age=0; SameSite=Strict';
+    document.cookie = 'user_role=; path=/; max-age=0; SameSite=Strict';
     router.push('/login');
   };
 

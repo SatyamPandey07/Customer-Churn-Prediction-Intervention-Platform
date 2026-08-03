@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Megaphone, Plus, Mail, MessageSquare, Send, Sparkles, Check, Play, Pause, Trash2, Filter } from 'lucide-react';
 import { MOCK_CAMPAIGNS, Campaign } from '@/lib/demoData';
 
-export default function ClientCampaigns({ initialCampaigns = [], userRole }: { initialCampaigns?: Campaign[]; userRole: string }) {
+export default function ClientCampaigns({ initialCampaigns = [], userRole: initialRole }: { initialCampaigns?: Campaign[]; userRole: string }) {
   const [campaigns, setCampaigns] = useState<Campaign[]>(
     initialCampaigns.length > 0 ? initialCampaigns : MOCK_CAMPAIGNS
   );
+  const [userRole, setUserRole] = useState(initialRole || 'admin');
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [riskTier, setRiskTier] = useState('critical');
@@ -15,6 +16,11 @@ export default function ClientCampaigns({ initialCampaigns = [], userRole }: { i
   const [channel, setChannel] = useState<'email' | 'sms' | 'slack' | 'in_app'>('email');
   const [template, setTemplate] = useState('Hi {{customer_name}}, We noticed seat changes on your subscription. Connect with your dedicated CSM to unlock 15% renewal discount.');
   const [successMsg, setSuccessMsg] = useState('');
+
+  useEffect(() => {
+    const match = document.cookie.match(/(?:^|;\s*)user_role=([^;]*)/);
+    if (match) setUserRole(decodeURIComponent(match[1]));
+  }, []);
 
   const canEdit = userRole === 'owner' || userRole === 'admin' || userRole === 'analyst';
 

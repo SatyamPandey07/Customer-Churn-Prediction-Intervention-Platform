@@ -2,19 +2,19 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
+  // In static export mode, client-side redirects handle auth.
+  // This middleware only runs in SSR/edge mode (non-static deployments).
   const token = request.cookies.get('access_token')?.value;
-  const role = request.cookies.get('user_role')?.value;
-
   const isAuthPage = request.nextUrl.pathname.startsWith('/login');
-  
+
   if (!token && !isAuthPage) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
-  
+
   if (token && isAuthPage) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
-  
+
   return NextResponse.next();
 }
 

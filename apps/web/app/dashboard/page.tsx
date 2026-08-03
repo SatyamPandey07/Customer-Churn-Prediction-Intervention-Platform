@@ -1,18 +1,11 @@
-import { fetchAPI } from '@/lib/api';
+import { MOCK_CUSTOMERS } from '@/lib/demoData';
 import ClientDashboard from './ClientDashboard';
 
-export default async function DashboardPage() {
-  let initialCustomers = [];
-  try {
-    initialCustomers = await fetchAPI('/customers');
-  } catch (e) {
-    console.error('Failed to fetch customers:', e);
-  }
-
+export default function DashboardPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6 text-gray-900">Churn Risk Dashboard</h1>
-      <ClientDashboard initialCustomers={initialCustomers} />
+      <ClientDashboard initialCustomers={MOCK_CUSTOMERS} />
     </div>
   );
 }

@@ -18,3 +18,8 @@ test-results/
 .vscode/
 .idea/
 .DS_Store
+
+# Build artifacts
+.netlify/
+out/
+apps/web/out/

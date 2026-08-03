@@ -1,13 +1,6 @@
-import { fetchAPI } from '@/lib/api';
+import { MOCK_INTEGRATIONS } from '@/lib/demoData';
 import ClientIntegrations from './ClientIntegrations';
 
-export default async function IntegrationsPage() {
-  let initialIntegrations = [];
-  try {
-    initialIntegrations = await fetchAPI('/integrations');
-  } catch (e) {
-    console.error('Failed to fetch integrations:', e);
-  }
-
-  return <ClientIntegrations initialIntegrations={initialIntegrations} />;
+export default function IntegrationsPage() {
+  return <ClientIntegrations initialIntegrations={MOCK_INTEGRATIONS} />;
 }

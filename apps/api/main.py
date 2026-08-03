@@ -4,12 +4,12 @@ from apps.api.routers import auth, webhooks, predictions, explanations, campaign
 from apps.api.core.observability import setup_observability
 from apps.api.core.middleware import SecurityHeadersMiddleware, GlobalRateLimitMiddleware
 
-app = FastAPI(title="Churn Intervention API")
+app = FastAPI(title="ChurnGuard.ai API")
 
 # Security Middlewares
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://app.churn-platform.com", "http://localhost:3000"],
+    allow_origins=["https://app.churnguard.ai", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

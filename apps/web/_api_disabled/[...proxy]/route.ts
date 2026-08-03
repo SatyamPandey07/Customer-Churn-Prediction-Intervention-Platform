@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchAPI } from '@/lib/api';
+
+// Required for output: 'export' — unused in static mode
+export function generateStaticParams() {
+  return [];
+}
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
