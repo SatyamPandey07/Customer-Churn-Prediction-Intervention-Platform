@@ -109,6 +109,9 @@ class Customer(Base):
     expansion_model_version = Column(String, nullable=True)
     expansion_computed_at = Column(DateTime(timezone=True), nullable=True)
 
+    stated_churn_reason = Column(String, nullable=True)
+
+
     health_score = Column(Float, nullable=True)
     health_score_computed_at = Column(DateTime(timezone=True), nullable=True)
 
@@ -384,6 +387,20 @@ class CsmProfile(Base):
     __table_args__ = (
         UniqueConstraint('tenant_id', 'user_id', name='uq_tenant_csm_user'),
     )
+
+class ExitSurvey(Base):
+    __tablename__ = "exit_surveys"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
+    reason_category = Column(String, nullable=False)  # price, missing_features, poor_support, usability, competitor, other
+    free_text = Column(String, nullable=True)
+    submitted_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    tenant = relationship("Tenant")
+    customer = relationship("Customer")
+
 
 
 

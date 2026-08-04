@@ -188,6 +188,11 @@ async def process_webhook(ctx, tenant_id: str, source: str, payload: dict):
             )
             
             await session.execute(stmt_insert_event)
+
+            # PR-16 Exit Survey Automation: Auto-trigger survey on Stripe cancellation events
+            if source == "stripe" and event.event_type in ["customer.subscription.deleted", "customer.subscription.cancelled", "subscription.deleted", "subscription.cancelled"]:
+                from apps.api.core.surveys.engine import trigger_exit_survey_on_cancellation
+                await trigger_exit_survey_on_cancellation(session, uuid.UUID(tenant_id), customer.id)
         
         await session.commit()
 
