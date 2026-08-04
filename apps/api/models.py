@@ -293,4 +293,40 @@ class AnomalyEvent(Base):
     tenant = relationship("Tenant")
     customer = relationship("Customer")
 
+class SupportSentimentScore(Base):
+    __tablename__ = "support_sentiment_scores"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
+    ticket_id = Column(String, nullable=False)
+    source = Column(String, nullable=False, default="zendesk")  # zendesk, intercom, nps
+    text_content = Column(String, nullable=False)
+    sentiment = Column(Float, nullable=False, default=0.0)  # -1.0 to +1.0
+    topics = Column(JSONB, nullable=False, default=list)
+    urgency_flag = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    tenant = relationship("Tenant")
+    customer = relationship("Customer")
+
+class AccountContact(Base):
+    __tablename__ = "account_contacts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    role = Column(String, nullable=False, default="Decision Maker")
+    is_champion = Column(Boolean, nullable=False, default=False)
+    is_active = Column(Boolean, nullable=False, default=True)
+    bounced = Column(Boolean, nullable=False, default=False)
+    last_confirmed_active = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    tenant = relationship("Tenant")
+    customer = relationship("Customer")
+
+
 

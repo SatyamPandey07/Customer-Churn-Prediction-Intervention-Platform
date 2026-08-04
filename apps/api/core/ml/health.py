@@ -33,8 +33,10 @@ def compute_health_score(
     payment_failures = float(feature_dict.get("payment_failures_90d", 0))
     payment_health_score = max(0.0, min(100.0, 100.0 - (payment_failures * 25.0)))
 
-    # 4. Support sentiment score (0-100 stub neutral)
-    support_sentiment_score = 50.0
+    # 4. Support sentiment score (0-100 scale from -1.0..+1.0 sentiment)
+    raw_sentiment = float(feature_dict.get("support_sentiment", feature_dict.get("average_support_sentiment", 0.0)))
+    raw_sentiment = max(-1.0, min(1.0, raw_sentiment))
+    support_sentiment_score = max(0.0, min(100.0, 50.0 + (raw_sentiment * 50.0)))
 
     # 5. Engagement recency (0-100)
     days_since_last = float(feature_dict.get("days_since_last_event", 90))
@@ -74,10 +76,10 @@ def compute_health_score(
         },
         "support_sentiment": {
             "weight": w_sentiment,
-            "raw_input": 0.0,
+            "raw_input": round(raw_sentiment, 2),
             "normalized_score": round(support_sentiment_score, 2),
             "weighted_contribution": round(support_sentiment_score * w_sentiment, 2),
-            "description": "CS Ticket Sentiment Score (Stub 50/100 until PR-14)"
+            "description": f"CS Support & NPS Sentiment ({raw_sentiment:+.2f} sentiment)"
         },
         "engagement_recency": {
             "weight": w_recency,
@@ -87,5 +89,6 @@ def compute_health_score(
             "description": f"Last activity recency ({int(days_since_last)} days ago)"
         }
     }
+
 
     return composite_score, breakdown
