@@ -1,14 +1,13 @@
 import uuid
-from typing import Optional, List
-from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, ConfigDict
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from datetime import UTC, datetime
 
 from apps.api.core.deps import get_db, require_role
-from apps.api.models import Customer, Intervention, Role, User, AuditLog
 from apps.api.core.outreach.adapters import get_adapter
+from apps.api.models import AuditLog, Customer, Intervention, Role
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/customers/{customer_id}/interventions", tags=["interventions"])
 
@@ -20,10 +19,10 @@ class InterventionResponse(BaseModel):
     id: uuid.UUID
     tenant_id: uuid.UUID
     customer_id: uuid.UUID
-    campaign_id: Optional[uuid.UUID]
+    campaign_id: uuid.UUID | None
     channel: str
     status: str
-    sent_at: Optional[datetime]
+    sent_at: datetime | None
     manual_override: bool
     
     model_config = ConfigDict(from_attributes=True)
@@ -61,7 +60,7 @@ async def manual_override(
     try:
         success = await adapter.send(db, customer, req.message)
         intervention.status = "sent" if success else "failed"
-        intervention.sent_at = datetime.now(timezone.utc)
+        intervention.sent_at = datetime.now(UTC)
     except Exception:
         intervention.status = "failed"
         
@@ -81,7 +80,7 @@ async def manual_override(
     
     return intervention
 
-@router.get("", response_model=List[InterventionResponse])
+@router.get("", response_model=list[InterventionResponse])
 async def get_interventions(
     customer_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),

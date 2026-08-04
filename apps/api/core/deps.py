@@ -1,13 +1,14 @@
 import os
-from typing import AsyncGenerator, Annotated, List
+from collections.abc import AsyncGenerator
+from typing import Annotated
+
+from apps.api.core.security import decode_token
+from apps.api.models import Role
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from jose import JWTError
 from sqlalchemy import text
-from jose import jwt, JWTError
-
-from apps.api.core.security import JWT_SECRET_KEY, JWT_ALGORITHM, decode_token
-from apps.api.models import User, Role
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 # Setup Async DB
 DATABASE_URL = os.getenv(
@@ -50,7 +51,7 @@ async def get_current_user(
 
     return token_data
 
-def require_role(allowed_roles: List[Role]):
+def require_role(allowed_roles: list[Role]):
     def role_checker(current_user: dict = Depends(get_current_user)):
         if current_user["role"] not in [r.value for r in allowed_roles]:
             raise HTTPException(

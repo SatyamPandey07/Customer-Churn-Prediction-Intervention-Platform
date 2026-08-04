@@ -1,13 +1,15 @@
 import asyncio
-import uuid
 import random
-from datetime import datetime, timedelta, timezone
-from sqlalchemy import text
+import uuid
+from datetime import UTC, datetime, timedelta
+
 from apps.api.core.deps import engine
-from apps.api.models import Tenant, Customer, CustomerEvent, PlanTier
+from apps.api.models import Customer, CustomerEvent, PlanTier, Tenant
+from sqlalchemy import text
 
 # Setup DB session
-from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
 AsyncSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 async def generate_data(num_customers=200):
@@ -28,7 +30,7 @@ async def generate_data(num_customers=200):
 
         print(f"Created Tenant {tenant_id}")
         
-        end_date = datetime.now(timezone.utc)
+        end_date = datetime.now(UTC)
         
         for i in range(num_customers):
             is_churner = (i < num_customers // 2)

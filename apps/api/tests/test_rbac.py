@@ -1,17 +1,27 @@
 import pytest
+from apps.api.models import Role, User
 from httpx import AsyncClient
 from sqlalchemy import select
-from apps.api.models import User, Role
+
 
 @pytest.mark.asyncio
-async def test_rbac_admin_only_route(client: AsyncClient, db_session):
+async def test_rbac_admin_only_route(client: AsyncClient, db_session, setup_redis):
+    # Ensure clean rate limit state
+    import apps.api.core.rate_limit as rl
+    try:
+        await rl.redis_client.flushdb()
+    except Exception:
+        pass
+
     # Signup creates owner
-    await client.post("/auth/signup", json={
+    signup_res = await client.post("/auth/signup", json={
         "tenant_name": "RBAC", "subdomain": "rbac", "email": "owner@rbac.com", "password": "Password1!"
     })
-    
+    assert signup_res.status_code == 201, f"Signup failed: {signup_res.status_code} {signup_res.text}"
+
     # Login to get owner token
     res = await client.post("/auth/login", data={"username": "owner@rbac.com", "password": "Password1!"})
+    assert res.status_code == 200, f"Login failed: {res.status_code} {res.text}"
     owner_token = res.json()["access_token"]
     
     # Hit admin route
@@ -24,10 +34,9 @@ async def test_rbac_admin_only_route(client: AsyncClient, db_session):
     user.role = Role.viewer
     await db_session.commit()
     
-    # Even though token says owner, wait... our token payload contains role!
-    # We need to mint a new token for the viewer, or the API relies on token role.
-    # Let's login again to get a viewer token
+    # Login again to get a viewer token
     res2 = await client.post("/auth/login", data={"username": "owner@rbac.com", "password": "Password1!"})
+    assert res2.status_code == 200, f"Second login failed: {res2.status_code} {res2.text}"
     viewer_token = res2.json()["access_token"]
     
     # Hit admin route with viewer token

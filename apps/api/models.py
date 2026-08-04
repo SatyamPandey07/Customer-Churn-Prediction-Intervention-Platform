@@ -1,12 +1,13 @@
 import enum
+import os
 import uuid
-from datetime import datetime, timezone
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Enum, UniqueConstraint, Float, Integer
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from datetime import UTC, datetime
+
+from sqlalchemy import Boolean, Column, DateTime, Enum, Float, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy_utils import StringEncryptedType
 from sqlalchemy_utils.types.encrypted.encrypted_type import AesGcmEngine
-import os
 
 ENCRYPTION_KEY = os.environ.get("ENCRYPTION_KEY", "super-secret-encryption-key-1234")
 
@@ -36,7 +37,7 @@ class Tenant(Base):
     name = Column(String, nullable=False)
     subdomain = Column(String, unique=True, nullable=False)
     plan_tier = Column(Enum(PlanTier, name='plantier'), nullable=False)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     is_active = Column(Boolean, default=True)
 
     users = relationship("User", back_populates="tenant")
@@ -50,7 +51,7 @@ class User(Base):
     email = Column(StringEncryptedType(String, ENCRYPTION_KEY, AesGcmEngine, 'pkcs5'), nullable=False)
     hashed_password = Column(String, nullable=True)
     role = Column(Enum(Role, name='user_role'), nullable=False)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     tenant = relationship("Tenant", back_populates="users")
     refresh_tokens = relationship("RefreshToken", back_populates="user")
@@ -67,7 +68,7 @@ class RefreshToken(Base):
     hashed_token = Column(String, nullable=False, unique=True)
     expires_at = Column(DateTime(timezone=True), nullable=False)
     revoked_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     user = relationship("User", back_populates="refresh_tokens")
 
@@ -79,7 +80,7 @@ class AuditLog(Base):
     actor_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     action = Column(String, nullable=False)
     resource = Column(String, nullable=True)
-    timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     ip_address = Column(String, nullable=True)
 
     tenant = relationship("Tenant", back_populates="audit_logs")
@@ -94,9 +95,9 @@ class Customer(Base):
     external_ids = Column(JSONB, nullable=False, default=dict)
     plan = Column(String, nullable=True)
     mrr = Column(Float, nullable=True, default=0.0)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    first_seen_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    last_seen_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    first_seen_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    last_seen_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     events = relationship("CustomerEvent", back_populates="customer")
 
@@ -126,7 +127,7 @@ class CustomerEvent(Base):
     event_type = Column(String, nullable=False)
     properties = Column(JSONB, nullable=False, default=dict)
     occurred_at = Column(DateTime(timezone=True), nullable=False)
-    ingested_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    ingested_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     customer = relationship("Customer", back_populates="events")
 
@@ -143,7 +144,7 @@ class ChurnFeature(Base):
     as_of_date = Column(DateTime(timezone=True), nullable=False)
     feature_set_version = Column(String, nullable=False)
     features = Column(JSONB, nullable=False, default=dict)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     customer = relationship("Customer")
 
@@ -161,7 +162,7 @@ class HealthScoreConfig(Base):
     payment_health_weight = Column(Float, nullable=False, default=0.20)
     support_sentiment_weight = Column(Float, nullable=False, default=0.0)
     engagement_recency_weight = Column(Float, nullable=False, default=0.20)
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     tenant = relationship("Tenant")
 
@@ -175,7 +176,7 @@ class HealthScore(Base):
     score = Column(Float, nullable=False)
     components = Column(JSONB, nullable=False, default=dict)
     version = Column(String, nullable=False, default="v1")
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     customer = relationship("Customer")
 
@@ -196,7 +197,7 @@ class Campaign(Base):
     variant_group_id = Column(String, nullable=True)
     status = Column(String, nullable=False, default="draft") # draft, active, paused
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     tenant = relationship("Tenant")
     creator = relationship("User")
@@ -214,7 +215,7 @@ class Intervention(Base):
     manual_override = Column(Boolean, nullable=False, default=False)
     outcome = Column(Enum(InterventionOutcome, name='intervention_outcome'), nullable=False, default=InterventionOutcome.pending)
     outcome_recorded_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     tenant = relationship("Tenant")
     customer = relationship("Customer")
@@ -228,7 +229,7 @@ class InAppNotification(Base):
     customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
     message = Column(String, nullable=False)
     is_read = Column(Boolean, nullable=False, default=False)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     tenant = relationship("Tenant")
     customer = relationship("Customer")
@@ -244,7 +245,7 @@ class RoiReport(Base):
     revenue_saved = Column(Float, nullable=False)
     roi_multiple = Column(Float, nullable=False)
     methodology = Column(String, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     tenant = relationship("Tenant")
 
@@ -259,7 +260,7 @@ class RevenueAtRiskSnapshot(Base):
     horizon_90d_expected_loss = Column(Float, nullable=False, default=0.0)
     by_plan_breakdown = Column(JSONB, nullable=False, default=dict)
     by_cohort_breakdown = Column(JSONB, nullable=False, default=dict)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     tenant = relationship("Tenant")
 
@@ -276,7 +277,7 @@ class RevenueAtRiskAlertConfig(Base):
     channel = Column(String, nullable=False, default="slack")
     enabled = Column(Boolean, nullable=False, default=True)
     last_alerted_at = Column(DateTime(timezone=True), nullable=True)
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     tenant = relationship("Tenant")
 
@@ -288,7 +289,7 @@ class AnomalyEvent(Base):
     customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
     anomaly_type = Column(String, nullable=False)  # usage_cliff, login_gap, payment_failure_spike, feature_abandonment
     severity = Column(String, nullable=False, default="high")  # low, medium, high, critical
-    detected_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    detected_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     detail = Column(JSONB, nullable=False, default=dict)
     resolved = Column(Boolean, nullable=False, default=False)
     resolved_at = Column(DateTime(timezone=True), nullable=True)
@@ -308,7 +309,7 @@ class SupportSentimentScore(Base):
     sentiment = Column(Float, nullable=False, default=0.0)  # -1.0 to +1.0
     topics = Column(JSONB, nullable=False, default=list)
     urgency_flag = Column(Boolean, nullable=False, default=False)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     tenant = relationship("Tenant")
     customer = relationship("Customer")
@@ -325,8 +326,8 @@ class AccountContact(Base):
     is_champion = Column(Boolean, nullable=False, default=False)
     is_active = Column(Boolean, nullable=False, default=True)
     bounced = Column(Boolean, nullable=False, default=False)
-    last_confirmed_active = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    last_confirmed_active = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     tenant = relationship("Tenant")
     customer = relationship("Customer")
@@ -341,8 +342,8 @@ class PlaybookDefinition(Base):
     graph = Column(JSONB, nullable=False, default=dict)  # {"nodes": [...], "edges": [...]}
     status = Column(String, nullable=False, default="active")  # active, draft, archived
     created_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     tenant = relationship("Tenant")
     creator = relationship("User")
@@ -360,8 +361,8 @@ class PlaybookRun(Base):
     next_step_at = Column(DateTime(timezone=True), nullable=True)
     assigned_csm_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     task_status = Column(String, nullable=True)  # unassigned_overflow, assigned, completed
-    started_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    started_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     completed_at = Column(DateTime(timezone=True), nullable=True)
 
     tenant = relationship("Tenant")
@@ -379,7 +380,7 @@ class CsmProfile(Base):
     current_active_count = Column(Integer, nullable=False, default=0)
     specialty_tags = Column(JSONB, nullable=False, default=list)  # ["enterprise", "fintech"]
     is_available = Column(Boolean, nullable=False, default=True)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     tenant = relationship("Tenant")
     user = relationship("User")
@@ -396,7 +397,7 @@ class ExitSurvey(Base):
     customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
     reason_category = Column(String, nullable=False)  # price, missing_features, poor_support, usability, competitor, other
     free_text = Column(String, nullable=True)
-    submitted_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    submitted_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     tenant = relationship("Tenant")
     customer = relationship("Customer")
@@ -416,7 +417,7 @@ class ApiKey(Base):
     is_active = Column(Boolean, nullable=False, default=True)
     last_used_at = Column(DateTime(timezone=True), nullable=True)
     expires_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     revoked_at = Column(DateTime(timezone=True), nullable=True)
 
     tenant = relationship("Tenant")
@@ -438,7 +439,7 @@ class CrmSyncLog(Base):
     status = Column(String, nullable=False, default="pending")  # pending | success | failed
     fields_pushed = Column(JSONB, nullable=False, default=dict)
     error_message = Column(String, nullable=True)
-    synced_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    synced_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     tenant = relationship("Tenant")
     customer = relationship("Customer")
@@ -451,7 +452,7 @@ class ModelFairnessReport(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
     dimension = Column(String, nullable=False)    # plan_tier, industry, company_size_band
-    generated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    generated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     segments = Column(JSONB, nullable=False, default=list)  # per-segment calibration metrics
     flagged_segments = Column(JSONB, nullable=False, default=list)  # segments with parity violations
     methodology = Column(String, nullable=False, default="")

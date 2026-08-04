@@ -1,20 +1,20 @@
-import pytest
 import uuid
-import sqlalchemy
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
-from apps.api.models import Tenant, User, Customer, Role, PlanTier, RevenueAtRiskSnapshot, RevenueAtRiskAlertConfig
-from apps.api.core.security import create_access_token
+import pytest
+import sqlalchemy
 from apps.api.core.analytics.revenue_at_risk import (
     compute_revenue_at_risk_metrics,
-    calculate_tenant_revenue_at_risk,
-    evaluate_revenue_at_risk_alert
+    evaluate_revenue_at_risk_alert,
 )
+from apps.api.core.security import create_access_token
+from apps.api.models import Customer, PlanTier, RevenueAtRiskAlertConfig, RevenueAtRiskSnapshot, Role, Tenant, User
 from apps.api.worker import snapshot_revenue_at_risk
 
+
 def test_expected_value_math_and_confidence_band():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     c1 = Customer(id=uuid.uuid4(), mrr=100.0, churn_probability=0.20, plan="standard", created_at=now)
     c2 = Customer(id=uuid.uuid4(), mrr=500.0, churn_probability=0.50, plan="premium", created_at=now)
 
@@ -29,8 +29,8 @@ def test_expected_value_math_and_confidence_band():
     assert metrics_90["total_expected_loss"] == 810.0  # 270.0 * 3
 
 def test_segmentation_by_plan_and_cohort():
-    jan_date = datetime(2026, 1, 15, tzinfo=timezone.utc)
-    feb_date = datetime(2026, 2, 20, tzinfo=timezone.utc)
+    jan_date = datetime(2026, 1, 15, tzinfo=UTC)
+    feb_date = datetime(2026, 2, 20, tzinfo=UTC)
 
     c1 = Customer(id=uuid.uuid4(), mrr=200.0, churn_probability=0.10, plan="basic", created_at=jan_date)
     c2 = Customer(id=uuid.uuid4(), mrr=300.0, churn_probability=0.40, plan="premium", created_at=jan_date)
@@ -69,7 +69,7 @@ async def test_revenue_at_risk_endpoint(client, db_session):
     await db_session.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
     c = Customer(
         id=uuid.uuid4(), tenant_id=tenant_id, external_ids={"stripe": "cus_rar_1"},
-        plan="premium", mrr=1000.0, churn_probability=0.25, created_at=datetime.now(timezone.utc)
+        plan="premium", mrr=1000.0, churn_probability=0.25, created_at=datetime.now(UTC)
     )
     db_session.add(c)
     await db_session.commit()
@@ -91,7 +91,7 @@ async def test_snapshot_job_idempotency(db_session):
     await db_session.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
     c = Customer(
         id=uuid.uuid4(), tenant_id=tenant_id, external_ids={"stripe": "cus_snap_1"},
-        plan="standard", mrr=500.0, churn_probability=0.30, created_at=datetime.now(timezone.utc)
+        plan="standard", mrr=500.0, churn_probability=0.30, created_at=datetime.now(UTC)
     )
     db_session.add(c)
     await db_session.commit()
@@ -130,7 +130,7 @@ async def test_threshold_crossing_alert(db_session):
 
     c = Customer(
         id=uuid.uuid4(), tenant_id=tenant_id, external_ids={"slack": "C99999"},
-        plan="premium", mrr=1000.0, churn_probability=0.30, created_at=datetime.now(timezone.utc)
+        plan="premium", mrr=1000.0, churn_probability=0.30, created_at=datetime.now(UTC)
     )
     db_session.add(c)
     await db_session.commit()

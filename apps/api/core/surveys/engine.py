@@ -1,12 +1,11 @@
-import uuid
 import logging
-from typing import Optional, Dict, Any
-from datetime import datetime, timezone
-from sqlalchemy import select, and_
-from sqlalchemy.ext.asyncio import AsyncSession
+import uuid
+from datetime import UTC, datetime
 
-from apps.api.models import Customer, ExitSurvey
 from apps.api.core.outreach.adapters import get_adapter
+from apps.api.models import Customer, ExitSurvey
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +50,7 @@ async def submit_exit_survey(
     tenant_id: uuid.UUID,
     customer_id: uuid.UUID,
     reason_category: str,
-    free_text: Optional[str] = None
+    free_text: str | None = None
 ) -> ExitSurvey:
     """
     Stores exit survey response and feeds stated reason back into the feature store / customer model.
@@ -59,7 +58,7 @@ async def submit_exit_survey(
     import sqlalchemy
     await db.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     survey = ExitSurvey(
         id=uuid.uuid4(),

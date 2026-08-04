@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func, case, Integer
-from apps.api.core.deps import get_db, require_role
-from apps.api.models import User, Intervention, InterventionOutcome, Campaign, RoiReport, Role
-from typing import Dict, Any, List, Optional
 import math
+from typing import Any
+
+from apps.api.core.deps import get_db, require_role
+from apps.api.models import Campaign, Intervention, InterventionOutcome, RoiReport, Role
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import Integer, and_, case, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -26,7 +27,7 @@ def wilson_score_interval(successes: int, n: int, z: float = 1.96) -> tuple[floa
 async def get_intervention_performance(
     db: AsyncSession = Depends(get_db),
     user: dict = Depends(require_role([Role.owner, Role.admin, Role.analyst, Role.viewer]))
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     
     tenant_id = user["tenant_id"]
     
@@ -85,7 +86,7 @@ async def get_intervention_performance(
 async def get_roi_report(
     db: AsyncSession = Depends(get_db),
     user: dict = Depends(require_role([Role.owner, Role.admin, Role.analyst]))
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     
     tenant_id = user["tenant_id"]
     
@@ -112,10 +113,12 @@ async def get_roi_report(
     }
 
 import uuid
-from datetime import datetime, timezone
-from pydantic import BaseModel, Field
-from apps.api.models import RevenueAtRiskSnapshot, RevenueAtRiskAlertConfig
+from datetime import UTC, datetime
+
 from apps.api.core.analytics.revenue_at_risk import calculate_tenant_revenue_at_risk
+from apps.api.models import RevenueAtRiskAlertConfig, RevenueAtRiskSnapshot
+from pydantic import BaseModel, Field
+
 
 class RevenueAtRiskAlertConfigSchema(BaseModel):
     threshold_amount: float = Field(..., ge=0.0)
@@ -204,24 +207,25 @@ async def update_revenue_at_risk_config(
             threshold_amount=payload.threshold_amount,
             channel=payload.channel,
             enabled=payload.enabled,
-            updated_at=datetime.now(timezone.utc)
+            updated_at=datetime.now(UTC)
         )
         db.add(config)
     else:
         config.threshold_amount = payload.threshold_amount
         config.channel = payload.channel
         config.enabled = payload.enabled
-        config.updated_at = datetime.now(timezone.utc)
+        config.updated_at = datetime.now(UTC)
 
     await db.commit()
     return payload
 
-from apps.api.core.analytics.attribution import get_tenant_attribution_report, get_explanation_validation_report
+from apps.api.core.analytics.attribution import get_explanation_validation_report, get_tenant_attribution_report
 from apps.api.core.surveys.engine import submit_exit_survey
+
 
 class SubmitExitSurveyPayload(BaseModel):
     reason_category: str  # price, missing_features, poor_support, usability, competitor, other
-    free_text: Optional[str] = None
+    free_text: str | None = None
 
 @router.get("/tenants/{tenant_id}/analytics/attribution")
 async def get_attribution_report(

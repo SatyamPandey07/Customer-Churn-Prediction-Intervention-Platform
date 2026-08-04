@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import uuid
+from typing import Any
+
+from apps.api.core.deps import get_current_user, get_db
+from apps.api.models import Campaign, Customer, CustomerEvent, Intervention, User
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-import uuid
-from typing import Any, Dict
-
-from apps.api.core.deps import get_db, get_current_user
-from apps.api.models import User, Customer, CustomerEvent, Intervention, Campaign
 
 router = APIRouter(prefix="/tenants/{tenant_id}/data", tags=["compliance"])
 
@@ -14,7 +14,7 @@ async def export_tenant_data(
     tenant_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     GDPR/CCPA Data Export: Returns all data associated with the tenant.
     """

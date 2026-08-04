@@ -1,12 +1,12 @@
-import uuid
-import math
 import logging
-from typing import Dict, Any, List, Tuple, Optional
-from datetime import datetime, timezone, timedelta
-from sqlalchemy import select, and_
-from sqlalchemy.ext.asyncio import AsyncSession
+import math
+import uuid
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from apps.api.models import Intervention, InterventionOutcome, Customer, ExitSurvey, ChurnFeature, PlaybookRun
+from apps.api.models import ChurnFeature, ExitSurvey, Intervention, InterventionOutcome
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +33,10 @@ DRIVER_TO_REASON_MAP = {
 }
 
 def calculate_time_decay_weights(
-    touches: List[Dict[str, Any]],
+    touches: list[dict[str, Any]],
     outcome_date: datetime,
     half_life_days: float = 7.0
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Computes time-decay attribution weights for a list of intervention touches relative to outcome_date.
     Formula: w_i = 2 ** (-days_before / half_life_days)
@@ -51,7 +51,7 @@ def calculate_time_decay_weights(
         sent_at = touch.get("sent_at")
         if isinstance(sent_at, str):
             try:
-                sent_at = datetime.fromisoformat(sent_at.replace("Z", "+00:00"))
+                sent_at = datetime.fromisoformat(sent_at)
             except Exception:
                 sent_at = outcome_date - timedelta(days=1)
         elif not sent_at:
@@ -70,7 +70,7 @@ def calculate_time_decay_weights(
 
     return weighted_touches
 
-async def get_tenant_attribution_report(db: AsyncSession, tenant_id: uuid.UUID) -> Dict[str, Any]:
+async def get_tenant_attribution_report(db: AsyncSession, tenant_id: uuid.UUID) -> dict[str, Any]:
     """
     Aggregates multi-touch time-decay attribution report for a tenant.
     Distinguishes single-touch vs multi-touch accounts.
@@ -90,17 +90,17 @@ async def get_tenant_attribution_report(db: AsyncSession, tenant_id: uuid.UUID) 
     interventions = res.scalars().all()
 
     # Group by customer_id
-    customer_touches: Dict[uuid.UUID, List[Intervention]] = {}
+    customer_touches: dict[uuid.UUID, list[Intervention]] = {}
     for i in interventions:
         customer_touches.setdefault(i.customer_id, []).append(i)
 
     single_touch_count = 0
     multi_touch_count = 0
-    channel_contributions: Dict[str, float] = {}
+    channel_contributions: dict[str, float] = {}
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
-    for cid, touch_list in customer_touches.items():
+    for touch_list in customer_touches.values():
         latest_sent = touch_list[-1].sent_at or now
 
         touches_data = [
@@ -138,7 +138,7 @@ async def get_tenant_attribution_report(db: AsyncSession, tenant_id: uuid.UUID) 
         "channel_contributions": channel_contributions
     }
 
-async def get_explanation_validation_report(db: AsyncSession, tenant_id: uuid.UUID) -> Dict[str, Any]:
+async def get_explanation_validation_report(db: AsyncSession, tenant_id: uuid.UUID) -> dict[str, Any]:
     """
     Directional agreement report comparing top SHAP model feature drivers against self-reported exit survey reasons.
     """

@@ -2,22 +2,22 @@
 CRM sync engine: orchestrates scheduled and manual outbound sync of ChurnGuard
 risk/health data to Salesforce and HubSpot CRM records.
 """
-import uuid
 import logging
-from datetime import datetime, timezone
-from typing import Dict, Any, List
-from sqlalchemy import select, and_
-from sqlalchemy.ext.asyncio import AsyncSession
+import uuid
+from datetime import UTC, datetime
+from typing import Any
 
-from apps.api.models import Customer, CrmSyncLog, Intervention, HealthScore
 from apps.api.core.crm.adapters import get_crm_adapter
+from apps.api.models import CrmSyncLog, Customer
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
 CRM_TYPES = ["salesforce", "hubspot"]
 
 
-def _build_fields_for_customer(customer: Customer) -> Dict[str, Any]:
+def _build_fields_for_customer(customer: Customer) -> dict[str, Any]:
     """Builds the field dict to push to CRM for a given customer."""
     return {
         "churn_risk_tier": customer.churn_risk_tier or "unknown",
@@ -47,7 +47,7 @@ async def sync_customer_to_crm(
         crm_type=crm_type,
         status="pending",
         fields_pushed={},
-        synced_at=datetime.now(timezone.utc)
+        synced_at=datetime.now(UTC)
     )
     db.add(sync_log)
     await db.flush()
@@ -77,7 +77,7 @@ async def sync_all_customers_to_crm(
     db: AsyncSession,
     tenant_id: uuid.UUID,
     crm_type: str
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Scheduled batch sync: pushes ChurnGuard risk/health fields for all tenant
     customers to the specified CRM.
@@ -103,6 +103,6 @@ async def sync_all_customers_to_crm(
     return {
         "tenant_id": str(tenant_id),
         "crm_type": crm_type,
-        "synced_at": datetime.now(timezone.utc).isoformat(),
+        "synced_at": datetime.now(UTC).isoformat(),
         **results
     }

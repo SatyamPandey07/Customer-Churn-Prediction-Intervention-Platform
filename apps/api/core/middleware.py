@@ -1,8 +1,10 @@
 import time
+
+from apps.api.core.rate_limit import redis_client
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response, JSONResponse
-from apps.api.core.rate_limit import redis_client
+from starlette.responses import JSONResponse
+
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):

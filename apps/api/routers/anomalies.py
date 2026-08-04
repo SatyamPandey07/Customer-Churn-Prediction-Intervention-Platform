@@ -1,13 +1,12 @@
 import uuid
-from typing import List, Optional, Dict, Any
-from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy import select, and_
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import UTC, datetime
 
-from apps.api.core.deps import get_db, get_current_user
-from apps.api.models import AnomalyEvent, Customer
 from apps.api.core.analytics.anomaly import detect_anomalies_for_customer
+from apps.api.core.deps import get_current_user, get_db
+from apps.api.models import AnomalyEvent, Customer
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/tenants", tags=["anomalies"])
 
@@ -19,8 +18,8 @@ def check_tenant_access(user: dict, tenant_id: uuid.UUID):
 @router.get("/{tenant_id}/anomalies")
 async def list_anomalies(
     tenant_id: uuid.UUID,
-    resolved: Optional[bool] = Query(False),
-    severity: Optional[str] = Query(None),
+    resolved: bool | None = Query(False),
+    severity: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
     user: dict = Depends(get_current_user)
 ):
@@ -67,14 +66,14 @@ async def resolve_anomaly(
         raise HTTPException(status_code=404, detail="Anomaly event not found")
 
     anomaly.resolved = True
-    anomaly.resolved_at = datetime.now(timezone.utc)
+    anomaly.resolved_at = datetime.now(UTC)
     await db.commit()
     return {"status": "resolved", "id": str(anomaly_id)}
 
 @router.post("/{tenant_id}/anomalies/detect")
 async def trigger_streaming_anomaly_detection(
     tenant_id: uuid.UUID,
-    customer_id: Optional[uuid.UUID] = Query(None),
+    customer_id: uuid.UUID | None = Query(None),
     db: AsyncSession = Depends(get_db),
     user: dict = Depends(get_current_user)
 ):

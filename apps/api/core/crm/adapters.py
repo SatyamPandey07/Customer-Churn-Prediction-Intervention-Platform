@@ -4,8 +4,7 @@ Follow the same SourceAdapter-style abstraction as PR-03, but for OUTBOUND sync.
 Mocked against fixture CRM APIs initially — swap in real keys later.
 """
 import logging
-from typing import Dict, Any, Optional
-from unittest.mock import AsyncMock
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +27,7 @@ class CrmAdapter:
     """Base class for outbound CRM sync adapters."""
     crm_type: str = "base"
 
-    async def push_customer_fields(self, crm_id: str, fields: Dict[str, Any]) -> Dict[str, Any]:
+    async def push_customer_fields(self, crm_id: str, fields: dict[str, Any]) -> dict[str, Any]:
         raise NotImplementedError
 
 
@@ -40,11 +39,11 @@ class SalesforceAdapter(CrmAdapter):
     """
     crm_type = "salesforce"
 
-    def __init__(self, instance_url: Optional[str] = None, access_token: Optional[str] = None):
+    def __init__(self, instance_url: str | None = None, access_token: str | None = None):
         self.instance_url = instance_url or "https://mock.salesforce.com"
         self.access_token = access_token or "mock_sf_token"
 
-    async def push_customer_fields(self, crm_id: str, fields: Dict[str, Any]) -> Dict[str, Any]:
+    async def push_customer_fields(self, crm_id: str, fields: dict[str, Any]) -> dict[str, Any]:
         """
         Pushes mapped custom fields onto Salesforce Account record.
         Returns the fields pushed for audit logging.
@@ -64,7 +63,7 @@ class SalesforceAdapter(CrmAdapter):
         # Simulate success response
         return {"crm_id": crm_id, "status": "success", "pushed_fields": sf_fields}
 
-    async def push_contact_fields(self, crm_id: str, fields: Dict[str, Any]) -> Dict[str, Any]:
+    async def push_contact_fields(self, crm_id: str, fields: dict[str, Any]) -> dict[str, Any]:
         """Same as push_customer_fields but targets Contact object."""
         sf_fields = {
             SALESFORCE_FIELD_MAP[k]: v
@@ -83,10 +82,10 @@ class HubSpotAdapter(CrmAdapter):
     """
     crm_type = "hubspot"
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         self.api_key = api_key or "mock_hs_api_key"
 
-    async def push_customer_fields(self, crm_id: str, fields: Dict[str, Any]) -> Dict[str, Any]:
+    async def push_customer_fields(self, crm_id: str, fields: dict[str, Any]) -> dict[str, Any]:
         """
         Pushes mapped custom properties onto HubSpot Company record.
         Returns the fields pushed for audit logging.
@@ -104,7 +103,7 @@ class HubSpotAdapter(CrmAdapter):
         )
         return {"crm_id": crm_id, "status": "success", "pushed_fields": hs_props}
 
-    async def push_contact_fields(self, crm_id: str, fields: Dict[str, Any]) -> Dict[str, Any]:
+    async def push_contact_fields(self, crm_id: str, fields: dict[str, Any]) -> dict[str, Any]:
         hs_props = {
             HUBSPOT_PROPERTY_MAP[k]: v
             for k, v in fields.items()

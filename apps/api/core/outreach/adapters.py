@@ -1,8 +1,8 @@
 import logging
 import uuid
-from typing import Dict, Any, Type
-from sqlalchemy.ext.asyncio import AsyncSession
+
 from apps.api.models import Customer, InAppNotification
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ class InAppAdapter(OutreachAdapter):
         return True
 
 def get_adapter(channel: str) -> OutreachAdapter:
-    adapters: Dict[str, Type[OutreachAdapter]] = {
+    adapters: dict[str, type[OutreachAdapter]] = {
         "email": EmailAdapter,
         "sms": SmsAdapter,
         "slack": SlackAdapter,

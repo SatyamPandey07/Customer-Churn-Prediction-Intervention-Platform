@@ -1,16 +1,13 @@
-import pytest
 import uuid
+
+import pytest
 import sqlalchemy
-from datetime import datetime, timezone, timedelta
-from unittest.mock import AsyncMock, patch
-
-from apps.api.models import Tenant, Customer, ApiKey, PlanTier
-from apps.api.core.api_keys import create_api_key, verify_api_key, revoke_api_key, _hash_key
-from apps.api.core.crm.adapters import SalesforceAdapter, HubSpotAdapter, get_crm_adapter
-from apps.api.core.crm.engine import sync_customer_to_crm, sync_all_customers_to_crm
-from apps.api.core.ml.fairness import run_fairness_monitoring, PARITY_THRESHOLD
+from apps.api.core.api_keys import create_api_key, revoke_api_key, verify_api_key
+from apps.api.core.crm.adapters import HubSpotAdapter, SalesforceAdapter
+from apps.api.core.crm.engine import sync_all_customers_to_crm, sync_customer_to_crm
+from apps.api.core.ml.fairness import PARITY_THRESHOLD, run_fairness_monitoring
+from apps.api.models import Customer, PlanTier, Tenant
 from apps.api.routers.public_api import _check_rate_limit, _rate_store
-
 
 # ============================================================
 # Test 1: CRM adapter field mapping (Salesforce + HubSpot)

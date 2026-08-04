@@ -1,13 +1,14 @@
 import time
-import pytest
 import uuid
-import sqlalchemy
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
-from apps.api.models import Tenant, User, Customer, CustomerEvent, Campaign, Intervention, AnomalyEvent, Role, PlanTier
-from apps.api.core.security import create_access_token
+import pytest
+import sqlalchemy
 from apps.api.core.analytics.anomaly import detect_anomalies_for_customer
+from apps.api.core.security import create_access_token
+from apps.api.models import AnomalyEvent, Campaign, Customer, CustomerEvent, Intervention, PlanTier, Role, Tenant, User
+
 
 @pytest.mark.asyncio
 async def test_z_score_usage_cliff_detection_and_no_false_positives(db_session):
@@ -21,14 +22,14 @@ async def test_z_score_usage_cliff_detection_and_no_false_positives(db_session):
     # Customer 1: Normal steady usage (10 events/day for 29 days, 9 events today -> Z is near 0)
     c1 = Customer(
         id=uuid.uuid4(), tenant_id=tenant_id, external_ids={"stripe": "cus_normal"},
-        plan="standard", mrr=100.0, created_at=datetime.now(timezone.utc) - timedelta(days=35),
-        last_seen_at=datetime.now(timezone.utc)
+        plan="standard", mrr=100.0, created_at=datetime.now(UTC) - timedelta(days=35),
+        last_seen_at=datetime.now(UTC)
     )
     # Customer 2: Usage Cliff (10 events/day for 29 days, 0 events today -> Z = -3.0+)
     c2 = Customer(
         id=uuid.uuid4(), tenant_id=tenant_id, external_ids={"stripe": "cus_cliff"},
-        plan="premium", mrr=500.0, created_at=datetime.now(timezone.utc) - timedelta(days=35),
-        last_seen_at=datetime.now(timezone.utc)
+        plan="premium", mrr=500.0, created_at=datetime.now(UTC) - timedelta(days=35),
+        last_seen_at=datetime.now(UTC)
     )
 
     db_session.add_all([c1, c2])
@@ -36,7 +37,7 @@ async def test_z_score_usage_cliff_detection_and_no_false_positives(db_session):
 
     await db_session.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     # Seed events for past 29 days (excluding today)
     events_to_add = []
     for day_i in range(1, 30):
@@ -84,13 +85,13 @@ async def test_debounce_cooldown_logic(db_session):
     await db_session.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
     c = Customer(
         id=uuid.uuid4(), tenant_id=tenant_id, external_ids={"stripe": "cus_deb"},
-        plan="standard", mrr=200.0, created_at=datetime.now(timezone.utc) - timedelta(days=35)
+        plan="standard", mrr=200.0, created_at=datetime.now(UTC) - timedelta(days=35)
     )
     db_session.add(c)
     await db_session.commit()
 
     await db_session.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     events = []
     for day_i in range(1, 30):
         occurred = now - timedelta(days=day_i)
@@ -139,13 +140,13 @@ async def test_auto_trigger_campaign_hook(db_session):
 
     c = Customer(
         id=uuid.uuid4(), tenant_id=tenant_id, external_ids={"email": "cliff@customer.com"},
-        plan="enterprise", mrr=2000.0, created_at=datetime.now(timezone.utc) - timedelta(days=40)
+        plan="enterprise", mrr=2000.0, created_at=datetime.now(UTC) - timedelta(days=40)
     )
     db_session.add(c)
     await db_session.commit()
 
     await db_session.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     events = []
     for day_i in range(1, 30):
         occurred = now - timedelta(days=day_i)
@@ -185,7 +186,7 @@ async def test_detection_latency_bounds(db_session):
     await db_session.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
     c = Customer(
         id=uuid.uuid4(), tenant_id=tenant_id, external_ids={"stripe": "cus_lat"},
-        plan="standard", mrr=300.0, created_at=datetime.now(timezone.utc) - timedelta(days=35)
+        plan="standard", mrr=300.0, created_at=datetime.now(UTC) - timedelta(days=35)
     )
     db_session.add(c)
     await db_session.commit()

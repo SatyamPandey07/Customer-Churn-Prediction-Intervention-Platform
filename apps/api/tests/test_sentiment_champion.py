@@ -1,15 +1,18 @@
-import pytest
 import uuid
-import sqlalchemy
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
-from apps.api.models import Tenant, User, Customer, AccountContact, AnomalyEvent, SupportSentimentScore, Role, PlanTier
-from apps.api.core.security import create_access_token
-from apps.api.core.ingestion.adapters import ZendeskAdapter, IntercomAdapter, NpsSurveyAdapter
-from apps.api.core.analytics.sentiment import analyze_sentiment, process_and_store_sentiment, get_customer_average_sentiment
-from apps.api.core.ml.health import compute_health_score
+import pytest
+import sqlalchemy
 from apps.api.core.analytics.champion import evaluate_champion_status
+from apps.api.core.analytics.sentiment import (
+    analyze_sentiment,
+)
+from apps.api.core.ingestion.adapters import IntercomAdapter, NpsSurveyAdapter, ZendeskAdapter
+from apps.api.core.ml.health import compute_health_score
+from apps.api.core.security import create_access_token
+from apps.api.models import AccountContact, Customer, PlanTier, Role, Tenant, User
+
 
 def test_adapters_normalize_fixtures():
     # Zendesk
@@ -82,7 +85,7 @@ def test_health_score_incorporates_sentiment_weight():
         "support_sentiment_weight": 0.0,
         "engagement_recency_weight": 0.15
     }
-    score_stub, breakdown_stub = compute_health_score(0.10, feature_dict, weights_stub)
+    score_stub, _breakdown_stub = compute_health_score(0.10, feature_dict, weights_stub)
 
     # Case B: Sentiment weight = 0.20 (real active weight)
     weights_active = {
@@ -114,7 +117,7 @@ async def test_champion_inactivity_triggers_champion_change_anomaly(db_session):
     await db_session.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
 
     # Add Champion contact who is bounced & inactive for 45 days
-    old_date = datetime.now(timezone.utc) - timedelta(days=45)
+    old_date = datetime.now(UTC) - timedelta(days=45)
     contact = AccountContact(
         id=uuid.uuid4(),
         tenant_id=tenant_id,
@@ -167,7 +170,7 @@ async def test_champion_status_endpoint(client, db_session):
         is_champion=True,
         is_active=True,
         bounced=False,
-        last_confirmed_active=datetime.now(timezone.utc)
+        last_confirmed_active=datetime.now(UTC)
     )
     db_session.add(contact)
     await db_session.commit()

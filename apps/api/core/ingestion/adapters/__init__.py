@@ -1,10 +1,11 @@
-from .stripe import StripeAdapter
-from .segment import SegmentAdapter
 from .amplitude import AmplitudeAdapter
 from .generic import GenericWebhookAdapter
-from .zendesk import ZendeskAdapter
 from .intercom import IntercomAdapter
 from .nps import NpsSurveyAdapter
+from .segment import SegmentAdapter
+from .stripe import StripeAdapter
+from .zendesk import ZendeskAdapter
+
 
 def get_adapter(source_name: str):
     adapters = {

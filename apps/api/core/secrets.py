@@ -1,6 +1,8 @@
 import os
 from abc import ABC, abstractmethod
+
 import hvac
+
 
 class SecretsManager(ABC):
     @abstractmethod

@@ -1,12 +1,23 @@
-import pytest
 import uuid
-import sqlalchemy
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
-from apps.api.models import Tenant, User, Customer, PlaybookDefinition, PlaybookRun, CsmProfile, AuditLog, Role, PlanTier
-from apps.api.core.security import create_access_token
+import pytest
+import sqlalchemy
 from apps.api.core.playbooks.engine import advance_playbook_run, assign_csm_for_human_task
+from apps.api.core.security import create_access_token
+from apps.api.models import (
+    AuditLog,
+    CsmProfile,
+    Customer,
+    PlanTier,
+    PlaybookDefinition,
+    PlaybookRun,
+    Role,
+    Tenant,
+    User,
+)
+
 
 @pytest.mark.asyncio
 async def test_multi_step_branching_playbook_execution(db_session):
@@ -47,7 +58,7 @@ async def test_multi_step_branching_playbook_execution(db_session):
     await db_session.commit()
 
     # Case A: True branch (is_vip = True)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     run_true = PlaybookRun(
         id=uuid.uuid4(), tenant_id=tenant_id, playbook_id=pb.id, customer_id=c.id,
         current_node_id="n1", status="running", state_data={"vars": {"is_vip": True}, "history": []},
@@ -108,7 +119,7 @@ async def test_crash_safety_resumable_execution(db_session):
     db_session.add(pb)
     await db_session.commit()
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     run = PlaybookRun(
         id=uuid.uuid4(), tenant_id=tenant_id, playbook_id=pb.id, customer_id=c.id,
         current_node_id="step1", status="running", state_data={"vars": {}, "history": []},

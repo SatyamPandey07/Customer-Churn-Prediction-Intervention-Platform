@@ -1,9 +1,11 @@
 import uuid
-import pandas as pd
 from datetime import datetime, timedelta
-from sqlalchemy import select, text
-from apps.api.models import Customer, CustomerEvent, ChurnFeature
+
+import pandas as pd
+from apps.api.models import ChurnFeature, Customer, CustomerEvent
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 
 async def extract_features(session: AsyncSession, tenant_id: uuid.UUID, as_of_date: datetime):
     """

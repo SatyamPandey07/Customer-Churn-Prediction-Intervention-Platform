@@ -1,12 +1,9 @@
 import os
+from typing import Any
+
 import joblib
 import pandas as pd
-from typing import Dict, Any
-
 import shap
-from pydantic import BaseModel, Field
-import xgboost as xgb
-from google import genai
 from apps.api.core.secrets import secrets_manager
 
 GEMINI_API_KEY = secrets_manager.get_secret("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
@@ -59,7 +56,7 @@ def generate_human_readable(feature_name: str, raw_value: float) -> str:
         return "On premium plan" if raw_value > 0 else "On basic plan"
     return f"{feature_name}: {raw_value}"
 
-def predict_churn(features: Dict[str, Any]) -> tuple[float, str, str, list]:
+def predict_churn(features: dict[str, Any]) -> tuple[float, str, str, list]:
     """
     Returns (probability, risk_tier, model_version, top_drivers)
     """

@@ -1,17 +1,28 @@
-import pytest
 import uuid
-import sqlalchemy
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
-from apps.api.models import Tenant, User, Customer, Intervention, InterventionOutcome, ExitSurvey, ChurnFeature, Role, PlanTier
-from apps.api.core.security import create_access_token
-from apps.api.core.analytics.attribution import calculate_time_decay_weights, get_tenant_attribution_report, get_explanation_validation_report
-from apps.api.core.surveys.engine import trigger_exit_survey_on_cancellation, submit_exit_survey
+import pytest
+import sqlalchemy
+from apps.api.core.analytics.attribution import (
+    calculate_time_decay_weights,
+    get_explanation_validation_report,
+    get_tenant_attribution_report,
+)
+from apps.api.core.surveys.engine import submit_exit_survey
+from apps.api.models import (
+    ChurnFeature,
+    Customer,
+    Intervention,
+    InterventionOutcome,
+    PlanTier,
+    Tenant,
+)
 from apps.api.worker import process_webhook
 
+
 def test_time_decay_attribution_math():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     t1 = now - timedelta(days=14)  # 2 half-lives ago -> weight ~ 0.25
     t2 = now - timedelta(days=7)   # 1 half-life ago -> weight ~ 0.50
     t3 = now - timedelta(days=1)   # ~0.14 half-lives ago -> weight ~ 0.90
@@ -47,7 +58,7 @@ async def test_attribution_report_single_vs_multitouch(db_session):
     db_session.add_all([c1, c2])
     await db_session.commit()
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Customer 1: Single touch (outcome = retained)
     i1 = Intervention(
@@ -102,7 +113,7 @@ async def test_stripe_cancellation_triggers_exit_survey(db_session):
     cancel_payload = {
         "type": "customer.subscription.deleted",
         "id": "evt_cancel_1",
-        "created": int(datetime.now(timezone.utc).timestamp()),
+        "created": int(datetime.now(UTC).timestamp()),
         "data": {"object": {"customer": "cus_stripe_999"}}
     }
 
@@ -116,7 +127,7 @@ async def test_stripe_cancellation_triggers_exit_survey(db_session):
     payment_payload = {
         "type": "invoice.payment_succeeded",
         "id": "evt_pay_1",
-        "created": int(datetime.now(timezone.utc).timestamp()),
+        "created": int(datetime.now(UTC).timestamp()),
         "data": {"object": {"customer": "cus_stripe_999"}}
     }
 
@@ -136,7 +147,7 @@ async def test_explanation_validation_report_and_feedback_loop(db_session):
     c = Customer(id=uuid.uuid4(), tenant_id=tenant_id, plan="premium", mrr=800.0)
     db_session.add(c)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     cf = ChurnFeature(
         id=uuid.uuid4(), tenant_id=tenant_id, customer_id=c.id,
         as_of_date=now, feature_set_version="v1",

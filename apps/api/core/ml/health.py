@@ -1,10 +1,11 @@
-from typing import Dict, Any, Tuple
+from typing import Any
+
 
 def compute_health_score(
     churn_probability: float,
-    feature_dict: Dict[str, Any],
-    weights: Dict[str, float]
-) -> Tuple[float, Dict[str, Any]]:
+    feature_dict: dict[str, Any],
+    weights: dict[str, float]
+) -> tuple[float, dict[str, Any]]:
     """
     Computes a 0-100 composite health score and itemized breakdown.
     

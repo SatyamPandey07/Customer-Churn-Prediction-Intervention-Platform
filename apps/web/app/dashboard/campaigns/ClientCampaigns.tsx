@@ -232,7 +232,7 @@ export default function ClientCampaigns({ initialCampaigns = [], userRole: initi
             </div>
 
             <p className="text-xs text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-950/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800/80 italic">
-              "{cmp.template}"
+              &quot;{cmp.template}&quot;
             </p>
 
             <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100 dark:border-slate-800/60 text-slate-500 dark:text-slate-400">

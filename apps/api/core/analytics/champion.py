@@ -1,12 +1,11 @@
-import uuid
 import logging
-from typing import List, Dict, Any, Optional
-from datetime import datetime, timezone, timedelta
-from sqlalchemy import select, and_
-from sqlalchemy.ext.asyncio import AsyncSession
+import uuid
+from datetime import UTC, datetime, timedelta
 
-from apps.api.models import AccountContact, Customer, AnomalyEvent
 from apps.api.core.analytics.anomaly import publish_anomaly_update
+from apps.api.models import AccountContact, AnomalyEvent
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +14,7 @@ async def evaluate_champion_status(
     tenant_id: uuid.UUID,
     customer_id: uuid.UUID,
     cooldown_hours: int = 24
-) -> List[AnomalyEvent]:
+) -> list[AnomalyEvent]:
     """
     Evaluates champion contacts for a customer account. If a champion contact email bounces
     or stops showing activity for >= 30 days while other account users are active,
@@ -24,7 +23,7 @@ async def evaluate_champion_status(
     import sqlalchemy
     await db.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     cutoff_cooldown = now - timedelta(hours=cooldown_hours)
 
     res_champions = await db.execute(
@@ -40,7 +39,7 @@ async def evaluate_champion_status(
     if not champions:
         return []
 
-    created_anomalies: List[AnomalyEvent] = []
+    created_anomalies: list[AnomalyEvent] = []
 
     for contact in champions:
         is_inactive = not contact.is_active or contact.bounced

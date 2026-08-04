@@ -1,15 +1,14 @@
 import uuid
-from typing import List, Optional, Dict, Any
-from datetime import datetime, timezone
-from pydantic import BaseModel, EmailStr
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, and_
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import UTC, datetime
 
-from apps.api.core.deps import get_db, get_current_user
-from apps.api.models import AccountContact, Customer
 from apps.api.core.analytics.champion import evaluate_champion_status
-from apps.api.core.analytics.sentiment import analyze_sentiment, process_and_store_sentiment
+from apps.api.core.analytics.sentiment import process_and_store_sentiment
+from apps.api.core.deps import get_current_user, get_db
+from apps.api.models import AccountContact
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["champions-sentiment"])
 
@@ -54,7 +53,7 @@ async def get_champion_status(
         )
     )
     champions = res.scalars().all()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     return [
         {
@@ -93,7 +92,7 @@ async def create_or_update_contact(
         )
     )
     contact = res.scalars().first()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     if not contact:
         contact = AccountContact(

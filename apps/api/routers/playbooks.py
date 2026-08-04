@@ -1,14 +1,14 @@
 import uuid
-from typing import List, Optional, Dict, Any
-from datetime import datetime, timezone
-from pydantic import BaseModel, Field
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, and_
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import UTC, datetime
+from typing import Any
 
-from apps.api.core.deps import get_db, get_current_user, require_role
-from apps.api.models import PlaybookDefinition, PlaybookRun, CsmProfile, AuditLog, Role, User, Customer
+from apps.api.core.deps import get_current_user, get_db, require_role
 from apps.api.core.playbooks.engine import advance_playbook_run
+from apps.api.models import AuditLog, CsmProfile, PlaybookDefinition, PlaybookRun, Role, User
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/tenants", tags=["playbooks"])
 
@@ -19,14 +19,14 @@ def check_tenant_access(user: dict, tenant_id: uuid.UUID):
 
 class CreatePlaybookPayload(BaseModel):
     name: str
-    description: Optional[str] = None
-    graph: Dict[str, Any]  # {"nodes": [...], "edges": [...]}
+    description: str | None = None
+    graph: dict[str, Any]  # {"nodes": [...], "edges": [...]}
     status: str = "active"
 
 class CreateCsmProfilePayload(BaseModel):
     user_id: uuid.UUID
     max_active_accounts: int = Field(20, ge=1)
-    specialty_tags: List[str] = []
+    specialty_tags: list[str] = []
     is_available: bool = True
 
 class ReassignCsmPayload(BaseModel):
@@ -40,7 +40,7 @@ async def create_playbook_definition(
     user: dict = Depends(require_role([Role.owner, Role.admin, Role.analyst]))
 ):
     check_tenant_access(user, tenant_id)
-    user_id = uuid.UUID(str(user["sub"])) if "sub" in user and user["sub"] else None
+    user_id = uuid.UUID(str(user["sub"])) if user.get("sub") else None
 
     playbook = PlaybookDefinition(
         id=uuid.uuid4(),
@@ -50,8 +50,8 @@ async def create_playbook_definition(
         graph=payload.graph,
         status=payload.status,
         created_by_user_id=user_id,
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc)
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC)
     )
     db.add(playbook)
     await db.commit()
@@ -131,7 +131,7 @@ async def trigger_playbook_run(
         raise HTTPException(status_code=400, detail="Invalid or empty playbook definition graph")
 
     start_node_id = pb.graph["nodes"][0]["id"]
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     run = PlaybookRun(
         id=uuid.uuid4(),
@@ -291,7 +291,7 @@ async def reassign_playbook_task(
     old_csm_id = run.assigned_csm_id
     run.assigned_csm_id = payload.csm_user_id
     run.task_status = "assigned"
-    run.updated_at = datetime.now(timezone.utc)
+    run.updated_at = datetime.now(UTC)
 
     # Write AuditLog
     actor_id_raw = user.get("user_id") or user.get("sub")
@@ -311,7 +311,7 @@ async def reassign_playbook_task(
         actor_user_id=actor_id,
         action="playbook_reassign_csm",
         resource=f"playbook_run:{run_id}",
-        timestamp=datetime.now(timezone.utc)
+        timestamp=datetime.now(UTC)
     )
     db.add(audit)
     await db.commit()

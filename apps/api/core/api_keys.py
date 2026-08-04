@@ -4,16 +4,16 @@ Keys are hashed at rest using SHA-256. Only the prefix (first 8 chars) is stored
 in plaintext for display purposes. The full key is only returned once at creation.
 """
 import hashlib
+import logging
 import secrets
 import uuid
-import logging
-from datetime import datetime, timezone
-from typing import Optional, Dict, Any
-from sqlalchemy import select, and_
-from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException
+from datetime import UTC, datetime
+from typing import Any
 
-from apps.api.models import ApiKey, AuditLog, User, Role
+from apps.api.models import ApiKey, AuditLog
+from fastapi import HTTPException
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +42,9 @@ async def create_api_key(
     tenant_id: uuid.UUID,
     name: str,
     scope: str = "read",
-    created_by_user_id: Optional[uuid.UUID] = None,
-    expires_at: Optional[datetime] = None
-) -> Dict[str, Any]:
+    created_by_user_id: uuid.UUID | None = None,
+    expires_at: datetime | None = None
+) -> dict[str, Any]:
     """
     Issues a new API key for the tenant. The raw key is returned ONCE only.
     Subsequent requests only see the key prefix and metadata.
@@ -117,8 +117,8 @@ async def revoke_api_key(
     db: AsyncSession,
     tenant_id: uuid.UUID,
     key_id: uuid.UUID,
-    revoked_by_user_id: Optional[uuid.UUID] = None
-) -> Dict[str, Any]:
+    revoked_by_user_id: uuid.UUID | None = None
+) -> dict[str, Any]:
     """Revokes an API key by marking it inactive."""
     res = await db.execute(
         select(ApiKey).where(
@@ -130,7 +130,7 @@ async def revoke_api_key(
         raise HTTPException(status_code=404, detail="API key not found")
 
     api_key.is_active = False
-    api_key.revoked_at = datetime.now(timezone.utc)
+    api_key.revoked_at = datetime.now(UTC)
 
     log = AuditLog(
         tenant_id=tenant_id,
@@ -144,7 +144,7 @@ async def revoke_api_key(
     return {"id": str(key_id), "revoked": True}
 
 
-async def verify_api_key(db: AsyncSession, raw_key: str) -> Optional[ApiKey]:
+async def verify_api_key(db: AsyncSession, raw_key: str) -> ApiKey | None:
     """
     Validates an incoming API key against stored hashes.
     Returns the ApiKey record if valid and active; None otherwise.
@@ -165,11 +165,11 @@ async def verify_api_key(db: AsyncSession, raw_key: str) -> Optional[ApiKey]:
         return None
 
     # Check expiry
-    if api_key.expires_at and datetime.now(timezone.utc) > api_key.expires_at.replace(tzinfo=timezone.utc):
+    if api_key.expires_at and datetime.now(UTC) > api_key.expires_at.replace(tzinfo=UTC):
         return None
 
     # Update last_used_at
-    api_key.last_used_at = datetime.now(timezone.utc)
+    api_key.last_used_at = datetime.now(UTC)
     await db.commit()
 
     return api_key

@@ -1,9 +1,25 @@
+from apps.api.core.middleware import GlobalRateLimitMiddleware, SecurityHeadersMiddleware
+from apps.api.core.observability import setup_observability
+from apps.api.routers import (
+    analytics,
+    anomalies,
+    auth,
+    campaigns,
+    champions,
+    compliance,
+    crm_keys,
+    explanations,
+    health,
+    integrations,
+    interventions,
+    playbooks,
+    predictions,
+    public_api,
+    webhooks,
+    websocket,
+)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from apps.api.routers import auth, webhooks, predictions, explanations, campaigns, interventions, analytics, compliance, integrations, health, anomalies, websocket, champions, playbooks, public_api, crm_keys
-
-from apps.api.core.observability import setup_observability
-from apps.api.core.middleware import SecurityHeadersMiddleware, GlobalRateLimitMiddleware
 
 app = FastAPI(title="ChurnGuard.ai API")
 

@@ -8,14 +8,14 @@ Slices churn predictions by plan_tier, industry, company_size_band and computes:
 
 This is a monitoring signal, not a statistical certification.
 """
-import uuid
 import logging
-from typing import Dict, Any, List
-from datetime import datetime, timezone
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+import uuid
+from datetime import UTC, datetime
+from typing import Any
 
 from apps.api.models import Customer, ModelFairnessReport
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ async def run_fairness_monitoring(
     customers = res.scalars().all()
 
     # Group customers by dimension value
-    groups: Dict[str, List[Customer]] = {}
+    groups: dict[str, list[Customer]] = {}
     for c in customers:
         if dimension == "plan_tier":
             val = c.plan or "standard"
@@ -99,7 +99,7 @@ async def run_fairness_monitoring(
         segments=segments,
         flagged_segments=flagged_segments,
         methodology=FAIRNESS_METHODOLOGY,
-        generated_at=datetime.now(timezone.utc)
+        generated_at=datetime.now(UTC)
     )
     db.add(report)
     await db.commit()
@@ -111,7 +111,7 @@ async def get_latest_fairness_report(
     db: AsyncSession,
     tenant_id: uuid.UUID,
     dimension: str = "plan_tier"
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Returns the latest stored fairness report or runs one fresh."""
     import sqlalchemy
     from sqlalchemy import and_

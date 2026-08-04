@@ -1,10 +1,11 @@
-import uuid
 import logging
-from typing import Dict, Any, List
-from datetime import datetime, timezone, timedelta
-from sqlalchemy import select, func, and_
-from sqlalchemy.ext.asyncio import AsyncSession
+import uuid
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
 from apps.api.models import SupportSentimentScore
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ URGENCY_KEYWORDS = {
     "cancelled", "canceling", "unusable", "broken", "urgent", "immediately", "executive", "churn", "escalate"
 }
 
-def analyze_sentiment(text: str) -> Dict[str, Any]:
+def analyze_sentiment(text: str) -> dict[str, Any]:
     """
     Scores sentiment (-1.0 to +1.0), extracts topics, and checks urgency flag.
     Includes open-source/rule-based fallback pipeline.
@@ -87,7 +88,7 @@ async def process_and_store_sentiment(
         sentiment=res["sentiment"],
         topics=res["topics"],
         urgency_flag=res["urgency_flag"],
-        created_at=datetime.now(timezone.utc)
+        created_at=datetime.now(UTC)
     )
     db.add(record)
     await db.commit()
@@ -99,7 +100,7 @@ async def get_customer_average_sentiment(
     customer_id: uuid.UUID,
     days: int = 30
 ) -> float:
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    cutoff = datetime.now(UTC) - timedelta(days=days)
     stmt = select(func.avg(SupportSentimentScore.sentiment)).where(
         and_(
             SupportSentimentScore.tenant_id == tenant_id,

@@ -1,12 +1,13 @@
 import os
+from typing import Any
+
 import joblib
-import pandas as pd
 import numpy as np
-import xgboost as xgb
+import pandas as pd
 import shap
-from typing import Dict, Any, Tuple, List
+import xgboost as xgb
+from sklearn.metrics import precision_score, recall_score, roc_auc_score
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import roc_auc_score, precision_score, recall_score
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
 EXPANSION_MODEL_PATH = os.path.join(MODEL_DIR, "xgboost_expansion_v1.joblib")
@@ -27,7 +28,7 @@ def load_expansion_model():
         _expansion_model_cache = joblib.load(EXPANSION_MODEL_PATH)
     return _expansion_model_cache
 
-def train_expansion_model(X: pd.DataFrame, y: pd.Series) -> Dict[str, float]:
+def train_expansion_model(X: pd.DataFrame, y: pd.Series) -> dict[str, float]:
     """
     Trains XGBoost classifier predicting expansion probability in next 90 days.
     Asserts AUC-ROC >= 0.72.
@@ -76,7 +77,7 @@ def train_expansion_model(X: pd.DataFrame, y: pd.Series) -> Dict[str, float]:
 
     return metrics
 
-def determine_upsell_type(feature_dict: Dict[str, Any], top_drivers: List[Dict[str, Any]]) -> str:
+def determine_upsell_type(feature_dict: dict[str, Any], top_drivers: list[dict[str, Any]]) -> str:
     seat_trend = float(feature_dict.get("seat_count_trend", 0))
     usage_slope = float(feature_dict.get("usage_trend_slope", 0))
     features_used = float(feature_dict.get("features_used_90d", 0))
@@ -104,7 +105,7 @@ def generate_human_readable(feature_name: str, raw_value: float) -> str:
         return f"High recency (active {int(raw_value)} days ago)"
     return f"{feature_name}: {raw_value}"
 
-def predict_expansion(features: Dict[str, Any]) -> Tuple[float, List[Dict[str, Any]], str]:
+def predict_expansion(features: dict[str, Any]) -> tuple[float, list[dict[str, Any]], str]:
     """
     Returns (expansion_probability, top_drivers, suggested_upsell_type)
     """

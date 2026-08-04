@@ -1,10 +1,11 @@
-import pytest
 import uuid
-import sqlalchemy
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from apps.api.models import Tenant, Customer, CustomerEvent, PlanTier, HealthScore
+import pytest
+import sqlalchemy
+from apps.api.models import Customer, HealthScore, PlanTier, Tenant
 from apps.api.worker import batch_score_churn
+
 
 @pytest.mark.asyncio
 async def test_unified_batch_scoring_job(db_session):
@@ -17,7 +18,7 @@ async def test_unified_batch_scoring_job(db_session):
 
     # Create synthetic customer
     c_id = uuid.uuid4()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     c = Customer(
         id=c_id,
         tenant_id=tenant_id,

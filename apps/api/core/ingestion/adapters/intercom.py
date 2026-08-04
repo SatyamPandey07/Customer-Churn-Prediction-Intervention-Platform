@@ -1,14 +1,16 @@
 import datetime
-from typing import Dict, Any, List
+from typing import Any
+
 from ..base import SourceAdapter
 from ..schema import CustomerEventSchema
+
 
 class IntercomAdapter(SourceAdapter):
     @property
     def source_name(self) -> str:
         return "intercom"
 
-    def normalize_payload(self, payload: Dict[str, Any]) -> List[CustomerEventSchema]:
+    def normalize_payload(self, payload: dict[str, Any]) -> list[CustomerEventSchema]:
         conv_id = str(payload.get("conversation_id") or payload.get("id") or "")
         user_id = str(payload.get("user_id") or payload.get("customer_id") or "")
         if not conv_id or not user_id:
@@ -16,14 +18,14 @@ class IntercomAdapter(SourceAdapter):
 
         ts = payload.get("created_at")
         if isinstance(ts, (int, float)):
-            occurred_at = datetime.datetime.fromtimestamp(ts, tz=datetime.timezone.utc)
+            occurred_at = datetime.datetime.fromtimestamp(ts, tz=datetime.UTC)
         elif isinstance(ts, str):
             try:
-                occurred_at = datetime.datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                occurred_at = datetime.datetime.fromisoformat(ts)
             except Exception:
-                occurred_at = datetime.datetime.now(datetime.timezone.utc)
+                occurred_at = datetime.datetime.now(datetime.UTC)
         else:
-            occurred_at = datetime.datetime.now(datetime.timezone.utc)
+            occurred_at = datetime.datetime.now(datetime.UTC)
 
         msg = payload.get("message") or payload.get("body") or ""
 

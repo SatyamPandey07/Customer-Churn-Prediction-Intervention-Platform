@@ -3,18 +3,18 @@ Public versioned API (/v1/...) with API-key-based authentication.
 Exposes: churn score lookup, health score lookup, webhook subscriptions.
 Rate limiting: uses per-key in-memory rate limiter (reuse PR-10 pattern).
 """
-import uuid
-import time
 import logging
+import time
+import uuid
 from collections import defaultdict
-from typing import Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Header, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from typing import Any
 
-from apps.api.core.deps import get_db
 from apps.api.core.api_keys import verify_api_key
-from apps.api.models import Customer, ApiKey
+from apps.api.core.deps import get_db
+from apps.api.models import ApiKey, Customer
+from fastapi import APIRouter, Depends, Header, HTTPException
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ router = APIRouter(prefix="/v1", tags=["public-api-v1"])
 # ---------------------------------------------------------------------------
 # Per-key in-memory rate limiter (sliding window, 100 req / 60 seconds)
 # ---------------------------------------------------------------------------
-_rate_store: Dict[str, list] = defaultdict(list)
+_rate_store: dict[str, list] = defaultdict(list)
 RATE_LIMIT_WINDOW_SEC = 60
 RATE_LIMIT_MAX_REQUESTS = 100
 
@@ -46,7 +46,7 @@ def _check_rate_limit(key_id: str):
 # Dependency: resolve and validate API key from header
 # ---------------------------------------------------------------------------
 async def require_api_key(
-    x_api_key: Optional[str] = Header(None, alias="X-Api-Key"),
+    x_api_key: str | None = Header(None, alias="X-Api-Key"),
     db: AsyncSession = Depends(get_db)
 ) -> ApiKey:
     if not x_api_key:
@@ -79,7 +79,7 @@ async def get_public_churn_score(
     customer_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     api_key: ApiKey = Depends(require_api_key)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Public endpoint: Returns churn probability + risk tier for a customer.
     Requires API key with 'read' or 'read_write' scope.
@@ -107,7 +107,7 @@ async def get_public_health_score(
     customer_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     api_key: ApiKey = Depends(require_api_key)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Public endpoint: Returns composite health score for a customer.
     Requires API key with 'read' or 'read_write' scope.
@@ -129,7 +129,7 @@ async def get_public_health_score(
 
 
 @router.get("/meta/openapi")
-async def get_openapi_info() -> Dict[str, Any]:
+async def get_openapi_info() -> dict[str, Any]:
     """Returns metadata about the public API schema version."""
     return {
         "openapi_version": "3.1.0",

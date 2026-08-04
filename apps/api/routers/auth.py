@@ -1,26 +1,20 @@
-from datetime import datetime, timezone, timedelta
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from pydantic import BaseModel
+from datetime import UTC, datetime, timedelta
 
-from apps.api.models import User, Tenant, Role, PlanTier, AuditLog, RefreshToken
-from apps.api.core.deps import get_db, get_current_user, require_role
+from apps.api.core.deps import get_current_user, get_db, require_role
+from apps.api.core.rate_limit import check_account_lockout, check_rate_limit, record_failed_login, reset_failed_login
 from apps.api.core.security import (
-    get_password_hash,
-    verify_password,
     create_access_token,
     create_refresh_token,
-    validate_password_policy
+    get_password_hash,
+    validate_password_policy,
+    verify_password,
 )
-from apps.api.core.rate_limit import (
-    check_rate_limit,
-    check_account_lockout,
-    record_failed_login,
-    reset_failed_login
-)
+from apps.api.models import AuditLog, PlanTier, RefreshToken, Role, Tenant, User
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -124,7 +118,7 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
     
     # Store refresh token
     hashed_refresh = get_password_hash(refresh_token_str)
-    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    expires_at = datetime.now(UTC) + timedelta(days=7)
     db_token = RefreshToken(
         user_id=user.id,
         hashed_token=hashed_refresh,
@@ -164,7 +158,7 @@ async def refresh(request: Request, body: RefreshRequest, db: AsyncSession = Dep
         raise HTTPException(status_code=401, detail="Invalid token")
     
     result = await db.execute(
-        select(RefreshToken).where(RefreshToken.user_id == user_id, RefreshToken.revoked_at == None, RefreshToken.expires_at > datetime.now(timezone.utc))
+        select(RefreshToken).where(RefreshToken.user_id == user_id, RefreshToken.revoked_at == None, RefreshToken.expires_at > datetime.now(UTC))
     )
     tokens = result.scalars().all()
     
@@ -185,13 +179,13 @@ async def refresh(request: Request, body: RefreshRequest, db: AsyncSession = Dep
     new_refresh_str = create_refresh_token(subject=user.id)
     
     # Revoke old token
-    valid_token_record.revoked_at = datetime.now(timezone.utc)
+    valid_token_record.revoked_at = datetime.now(UTC)
     
     # Add new token
     db_token = RefreshToken(
         user_id=user.id,
         hashed_token=get_password_hash(new_refresh_str),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7)
+        expires_at=datetime.now(UTC) + timedelta(days=7)
     )
     db.add(db_token)
     await db.commit()
@@ -212,7 +206,7 @@ async def logout(current_user: dict = Depends(get_current_user), db: AsyncSessio
     )
     tokens = result.scalars().all()
     for t in tokens:
-        t.revoked_at = datetime.now(timezone.utc)
+        t.revoked_at = datetime.now(UTC)
         
     audit = AuditLog(
         tenant_id=current_user["tenant_id"],

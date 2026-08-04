@@ -1,10 +1,11 @@
-import pytest
 import uuid
+
+import pytest
 import sqlalchemy
-from datetime import datetime, timezone
-from apps.api.models import Tenant, User, Customer, HealthScoreConfig, HealthScore, Role, PlanTier
 from apps.api.core.ml.health import compute_health_score
 from apps.api.core.security import create_access_token
+from apps.api.models import Customer, PlanTier, Role, Tenant, User
+
 
 def test_health_score_weighting_math():
     feature_dict = {

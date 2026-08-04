@@ -2,20 +2,19 @@
 API key management endpoints (RBAC: owner/admin only) and CRM sync trigger.
 Fairness monitoring report endpoint.
 """
-import uuid
 import logging
-from typing import Dict, Any, Optional, List
+import uuid
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel
 
-from apps.api.core.deps import get_db, require_role
 from apps.api.core.api_keys import create_api_key, list_api_keys, revoke_api_key
 from apps.api.core.crm.engine import sync_all_customers_to_crm, sync_customer_to_crm
+from apps.api.core.deps import get_db, require_role
 from apps.api.core.ml.fairness import get_latest_fairness_report, run_fairness_monitoring
 from apps.api.models import Customer, Role
-from sqlalchemy import select, and_
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +28,7 @@ router = APIRouter(tags=["crm-api-fairness"])
 class CreateApiKeyPayload(BaseModel):
     name: str
     scope: str = "read"  # "read" or "read_write"
-    expires_at: Optional[datetime] = None
+    expires_at: datetime | None = None
 
 
 @router.get("/tenants/{tenant_id}/api-keys")
