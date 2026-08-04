@@ -53,7 +53,7 @@ export default function CustomerDetailPage() {
           <p className="text-xs text-slate-400">First seen: {new Date(customer.first_seen_at).toLocaleDateString()} • Last activity: {new Date(customer.last_seen_at).toLocaleString()}</p>
         </div>
 
-        <div className="flex items-center space-x-6 text-right">
+        <div className="flex items-center space-6 text-right">
           <div>
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Monthly Revenue</div>
             <div className="text-xl font-extrabold text-white">${customer.mrr.toFixed(2)}</div>
@@ -105,7 +105,7 @@ export default function CustomerDetailPage() {
           <div className="p-4 bg-blue-950/30 border border-blue-500/30 rounded-xl space-y-2">
             <div className="text-xs font-bold text-blue-300">{explanation?.intervention_recommendation?.strategy}</div>
             <p className="text-xs text-slate-300 italic bg-slate-950 p-3 rounded-lg border border-slate-800">
-              "{explanation?.intervention_recommendation?.copy}"
+              &quot;{explanation?.intervention_recommendation?.copy}&quot;
             </p>
           </div>
 

@@ -1,12 +1,11 @@
-import os
-import json
-import uuid
 import logging
-from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, Field
+import os
+from typing import Any
+
+from apps.api.core.queue import get_redis_settings
 from google import genai
 from google.genai import types
-from apps.api.core.queue import get_redis_settings
+from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 logger = logging.getLogger(__name__)
@@ -18,7 +17,7 @@ class InterventionItem(BaseModel):
     priority: str = Field(description="One of: low, medium, high, critical")
 
 class InterventionResponse(BaseModel):
-    recommended_interventions: List[InterventionItem]
+    recommended_interventions: list[InterventionItem]
     confidence: float = Field(description="Confidence in the recommendation from 0.0 to 1.0")
 
 _redis = None
@@ -37,7 +36,7 @@ def get_redis_client() -> Redis:
                 host = settings.get("host", "localhost")
             elif hasattr(settings, 'redis_settings') and hasattr(settings.redis_settings, 'host'):
                 host = settings.redis_settings.host
-        except:
+        except Exception:
             pass
         _redis = Redis.from_url(f"redis://{host}:6379")
     return _redis
@@ -72,8 +71,8 @@ async def generate_intervention(
     customer_id: str,
     churn_prob: float,
     risk_tier: str,
-    drivers: List[Dict[str, Any]],
-    customer_meta: Dict[str, Any],
+    drivers: list[dict[str, Any]],
+    customer_meta: dict[str, Any],
     feature_set_version: str = "v1",
     model_version: str = "xgboost_v1"
 ) -> InterventionResponse:
