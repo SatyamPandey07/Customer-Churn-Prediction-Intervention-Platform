@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from apps.api.routers import auth, webhooks, predictions, explanations, campaigns, interventions, analytics, compliance, integrations, health
+from apps.api.routers import auth, webhooks, predictions, explanations, campaigns, interventions, analytics, compliance, integrations, health, anomalies, websocket
 from apps.api.core.observability import setup_observability
 from apps.api.core.middleware import SecurityHeadersMiddleware, GlobalRateLimitMiddleware
 
@@ -27,6 +27,9 @@ app.include_router(analytics.router)
 app.include_router(compliance.router)
 app.include_router(integrations.router)
 app.include_router(health.router)
+app.include_router(anomalies.router)
+app.include_router(websocket.router)
+
 
 # Initialize observability
 setup_observability(app)

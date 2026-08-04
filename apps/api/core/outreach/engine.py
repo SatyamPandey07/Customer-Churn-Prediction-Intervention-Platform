@@ -40,7 +40,27 @@ async def _evaluate_single_campaign(db: AsyncSession, tenant_id: uuid.UUID, camp
     if "mrr_gt" in rule:
         query = query.where(Customer.mrr > rule["mrr_gt"])
 
+    if "anomaly_type" in rule:
+        from apps.api.models import AnomalyEvent
+        target_type = rule["anomaly_type"]
+        target_sev = rule.get("severity")
+
+        subq = select(AnomalyEvent.customer_id).where(
+            and_(
+                AnomalyEvent.tenant_id == tenant_id,
+                AnomalyEvent.anomaly_type == target_type,
+                AnomalyEvent.resolved == False
+            )
+        )
+        if target_sev:
+            subq = subq.where(AnomalyEvent.severity == target_sev)
+
+        res_ids = await db.execute(subq)
+        anomaly_cids = res_ids.scalars().all()
+        query = query.where(Customer.id.in_(anomaly_cids))
+
     result = await db.execute(query)
+
     customers = result.scalars().all()
 
     cooldown_days = 14
