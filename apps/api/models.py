@@ -277,3 +277,20 @@ class RevenueAtRiskAlertConfig(Base):
 
     tenant = relationship("Tenant")
 
+class AnomalyEvent(Base):
+    __tablename__ = "anomaly_events"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
+    anomaly_type = Column(String, nullable=False)  # usage_cliff, login_gap, payment_failure_spike, feature_abandonment
+    severity = Column(String, nullable=False, default="high")  # low, medium, high, critical
+    detected_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    detail = Column(JSONB, nullable=False, default=dict)
+    resolved = Column(Boolean, nullable=False, default=False)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+
+    tenant = relationship("Tenant")
+    customer = relationship("Customer")
+
+
