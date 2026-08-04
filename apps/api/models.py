@@ -105,6 +105,13 @@ class Customer(Base):
     churn_model_version = Column(String, nullable=True)
     churn_computed_at = Column(DateTime(timezone=True), nullable=True)
 
+    expansion_probability = Column(Float, nullable=True)
+    expansion_model_version = Column(String, nullable=True)
+    expansion_computed_at = Column(DateTime(timezone=True), nullable=True)
+
+    health_score = Column(Float, nullable=True)
+    health_score_computed_at = Column(DateTime(timezone=True), nullable=True)
+
 class CustomerEvent(Base):
     __tablename__ = "customer_events"
 
@@ -114,7 +121,6 @@ class CustomerEvent(Base):
     source = Column(String, nullable=False)
     external_event_id = Column(String, nullable=False)
     event_type = Column(String, nullable=False)
-    from sqlalchemy.dialects.postgresql import JSONB
     properties = Column(JSONB, nullable=False, default=dict)
     occurred_at = Column(DateTime(timezone=True), nullable=False)
     ingested_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
@@ -133,7 +139,6 @@ class ChurnFeature(Base):
     customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
     as_of_date = Column(DateTime(timezone=True), nullable=False)
     feature_set_version = Column(String, nullable=False)
-    from sqlalchemy.dialects.postgresql import JSONB
     features = Column(JSONB, nullable=False, default=dict)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
@@ -141,6 +146,38 @@ class ChurnFeature(Base):
 
     __table_args__ = (
         UniqueConstraint('tenant_id', 'customer_id', 'as_of_date', 'feature_set_version', name='uq_tenant_customer_date_version'),
+    )
+
+class HealthScoreConfig(Base):
+    __tablename__ = "health_score_configs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, unique=True)
+    churn_weight = Column(Float, nullable=False, default=0.35)
+    usage_trend_weight = Column(Float, nullable=False, default=0.25)
+    payment_health_weight = Column(Float, nullable=False, default=0.20)
+    support_sentiment_weight = Column(Float, nullable=False, default=0.0)
+    engagement_recency_weight = Column(Float, nullable=False, default=0.20)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    tenant = relationship("Tenant")
+
+class HealthScore(Base):
+    __tablename__ = "health_scores"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
+    as_of_date = Column(DateTime(timezone=True), nullable=False)
+    score = Column(Float, nullable=False)
+    components = Column(JSONB, nullable=False, default=dict)
+    version = Column(String, nullable=False, default="v1")
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    customer = relationship("Customer")
+
+    __table_args__ = (
+        UniqueConstraint('tenant_id', 'customer_id', 'as_of_date', 'version', name='uq_tenant_customer_health_date_version'),
     )
 
 class Campaign(Base):

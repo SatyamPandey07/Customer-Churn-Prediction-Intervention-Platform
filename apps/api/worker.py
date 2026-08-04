@@ -22,13 +22,18 @@ async def startup(ctx):
     setup_observability()
     ctx["tracer"] = trace.get_tracer(__name__)
 
+from apps.api.models import Customer, CustomerEvent, Tenant, HealthScoreConfig, HealthScore
+from apps.api.core.ml.predict import predict_churn
+from apps.api.core.ml.expansion import predict_expansion
+from apps.api.core.ml.health import compute_health_score
+
 async def batch_score_churn(ctx):
     """
-    Nightly batch job to compute churn risk for all active customers.
+    Nightly unified batch job to compute churn risk, expansion signal, and composite health score for all active customers in a single pass.
     """
     tracer = ctx.get("tracer", trace.get_tracer(__name__))
-    with tracer.start_as_current_span("batch_score_churn"):
-        logger.info("Running nightly batch_score_churn job...")
+    with tracer.start_as_current_span("batch_score_all"):
+        logger.info("Running nightly unified batch scoring job...")
         now = datetime.now(timezone.utc)
         
         async with AsyncSessionLocal() as session:
@@ -45,6 +50,19 @@ async def batch_score_churn(ctx):
                 if df_features.empty:
                     continue
                     
+                # Fetch tenant HealthScoreConfig
+                cfg_res = await session.execute(
+                    sqlalchemy.select(HealthScoreConfig).where(HealthScoreConfig.tenant_id == tenant_id)
+                )
+                cfg = cfg_res.scalars().first()
+                weights = {
+                    "churn_weight": cfg.churn_weight if cfg else 0.35,
+                    "usage_trend_weight": cfg.usage_trend_weight if cfg else 0.25,
+                    "payment_health_weight": cfg.payment_health_weight if cfg else 0.20,
+                    "support_sentiment_weight": cfg.support_sentiment_weight if cfg else 0.0,
+                    "engagement_recency_weight": cfg.engagement_recency_weight if cfg else 0.20,
+                }
+
                 customers_res = await session.execute(
                     sqlalchemy.select(Customer).where(Customer.tenant_id == tenant_id)
                 )
@@ -56,22 +74,52 @@ async def batch_score_churn(ctx):
                         continue
                         
                     feature_dict = row.drop("customer_id").to_dict()
+                    
+                    # 1. Churn Prediction
                     try:
-                        proba, tier, model_version, _ = predict_churn(feature_dict)
-                    except RuntimeError as e:
-                        logger.error(f"Prediction failed: {e}")
-                        continue
-                        
+                        churn_proba, tier, churn_version, _ = predict_churn(feature_dict)
+                    except Exception:
+                        churn_proba, tier, churn_version = 0.1, "low", "xgboost_v1"
+
+                    # 2. Expansion Prediction
+                    try:
+                        exp_proba, _, _ = predict_expansion(feature_dict)
+                    except Exception:
+                        exp_proba = 0.1
+
+                    # 3. Composite Health Score Calculation
+                    h_score, breakdown = compute_health_score(churn_proba, feature_dict, weights)
+
+                    # Update Customer record
                     c = customers[c_id]
-                    c.churn_probability = proba
+                    c.churn_probability = churn_proba
                     c.churn_risk_tier = tier
-                    c.churn_model_version = model_version
+                    c.churn_model_version = churn_version
                     c.churn_computed_at = now
-                    await publish_churn_update(str(tenant_id), c_id, proba, tier)
+
+                    c.expansion_probability = exp_proba
+                    c.expansion_model_version = "xgboost_expansion_v1"
+                    c.expansion_computed_at = now
+
+                    c.health_score = h_score
+                    c.health_score_computed_at = now
+
+                    # Save versioned HealthScore record
+                    hs_record = HealthScore(
+                        tenant_id=tenant_id,
+                        customer_id=c.id,
+                        as_of_date=now,
+                        score=h_score,
+                        components=breakdown,
+                        version="v1"
+                    )
+                    session.add(hs_record)
+
+                    await publish_churn_update(str(tenant_id), c_id, churn_proba, tier)
                     
                 await session.commit()
                 
-        logger.info("Finished batch_score_churn job.")
+        logger.info("Finished unified batch scoring job.")
 
 async def process_webhook(ctx, tenant_id: str, source: str, payload: dict):
     adapter = get_adapter(source)

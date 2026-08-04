@@ -49,6 +49,13 @@ if USE_LIVE_SERVICES:
         engine = create_async_engine(TEST_DB_URL, echo=False)
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+
+        import apps.api.core.deps as deps_mod
+        import apps.api.worker as worker_mod
+        test_session_maker = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+        deps_mod.AsyncSessionLocal = test_session_maker
+        worker_mod.AsyncSessionLocal = test_session_maker
+
         yield engine
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
@@ -90,6 +97,13 @@ else:
             engine = create_async_engine(url, echo=False)
             async with engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
+
+            import apps.api.core.deps as deps_mod
+            import apps.api.worker as worker_mod
+            test_session_maker = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+            deps_mod.AsyncSessionLocal = test_session_maker
+            worker_mod.AsyncSessionLocal = test_session_maker
+
             yield engine
             async with engine.begin() as conn:
                 await conn.run_sync(Base.metadata.drop_all)
