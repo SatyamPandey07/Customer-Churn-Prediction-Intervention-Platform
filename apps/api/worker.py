@@ -301,7 +301,19 @@ async def snapshot_revenue_at_risk(ctx):
             # Evaluate alert thresholds
             await evaluate_revenue_at_risk_alert(session, tenant_id, metrics_90["total_expected_loss"])
 
-    logger.info("Finished snapshot_revenue_at_risk job.")
+from apps.api.core.playbooks.engine import process_active_playbook_runs
+
+async def process_active_playbooks(ctx):
+    """
+    Cron job to advance active playbook runs.
+    """
+    logger.info("Running process_active_playbooks job...")
+    async with deps.AsyncSessionLocal() as session:
+        tenants_res = await session.execute(sqlalchemy.select(Tenant.id).where(Tenant.is_active == True))
+        tenant_ids = tenants_res.scalars().all()
+        for tenant_id in tenant_ids:
+            await process_active_playbook_runs(session, tenant_id)
+    logger.info("Finished process_active_playbooks job.")
 
 class WorkerSettings:
     functions = [process_webhook]
@@ -311,7 +323,9 @@ class WorkerSettings:
         cron(run_outcome_tracking, hour=4, minute=0),
         # Run ROI calculation every Monday (weekday=0) at 5 AM
         cron(generate_weekly_roi_reports, weekday={0}, hour=5, minute=0),
-        cron(snapshot_revenue_at_risk, hour=1, minute=0)
+        cron(snapshot_revenue_at_risk, hour=1, minute=0),
+        cron(process_active_playbooks, minute={0, 15, 30, 45})
     ]
     redis_settings = get_redis_settings()
+
 

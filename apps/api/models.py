@@ -1,7 +1,7 @@
 import enum
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Enum, UniqueConstraint, Float
+from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Enum, UniqueConstraint, Float, Integer
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy_utils import StringEncryptedType
@@ -327,6 +327,64 @@ class AccountContact(Base):
 
     tenant = relationship("Tenant")
     customer = relationship("Customer")
+
+class PlaybookDefinition(Base):
+    __tablename__ = "playbook_definitions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    graph = Column(JSONB, nullable=False, default=dict)  # {"nodes": [...], "edges": [...]}
+    status = Column(String, nullable=False, default="active")  # active, draft, archived
+    created_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    tenant = relationship("Tenant")
+    creator = relationship("User")
+
+class PlaybookRun(Base):
+    __tablename__ = "playbook_runs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    playbook_id = Column(UUID(as_uuid=True), ForeignKey("playbook_definitions.id"), nullable=False)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
+    current_node_id = Column(String, nullable=False)
+    status = Column(String, nullable=False, default="running")  # running, paused, completed, failed
+    state_data = Column(JSONB, nullable=False, default=dict)  # persisted execution history and variables
+    next_step_at = Column(DateTime(timezone=True), nullable=True)
+    assigned_csm_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    task_status = Column(String, nullable=True)  # unassigned_overflow, assigned, completed
+    started_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+
+    tenant = relationship("Tenant")
+    playbook = relationship("PlaybookDefinition")
+    customer = relationship("Customer")
+    assigned_csm = relationship("User")
+
+class CsmProfile(Base):
+    __tablename__ = "csm_profiles"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    max_active_accounts = Column(Integer, nullable=False, default=20)
+    current_active_count = Column(Integer, nullable=False, default=0)
+    specialty_tags = Column(JSONB, nullable=False, default=list)  # ["enterprise", "fintech"]
+    is_available = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    tenant = relationship("Tenant")
+    user = relationship("User")
+
+    __table_args__ = (
+        UniqueConstraint('tenant_id', 'user_id', name='uq_tenant_csm_user'),
+    )
+
 
 
 
