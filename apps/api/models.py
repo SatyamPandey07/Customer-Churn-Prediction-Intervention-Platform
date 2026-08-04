@@ -244,3 +244,36 @@ class RoiReport(Base):
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     tenant = relationship("Tenant")
+
+class RevenueAtRiskSnapshot(Base):
+    __tablename__ = "revenue_at_risk_snapshots"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    as_of_date = Column(DateTime(timezone=True), nullable=False)
+    horizon_30d_expected_loss = Column(Float, nullable=False, default=0.0)
+    horizon_60d_expected_loss = Column(Float, nullable=False, default=0.0)
+    horizon_90d_expected_loss = Column(Float, nullable=False, default=0.0)
+    by_plan_breakdown = Column(JSONB, nullable=False, default=dict)
+    by_cohort_breakdown = Column(JSONB, nullable=False, default=dict)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    tenant = relationship("Tenant")
+
+    __table_args__ = (
+        UniqueConstraint('tenant_id', 'as_of_date', name='uq_tenant_rar_snapshot_date'),
+    )
+
+class RevenueAtRiskAlertConfig(Base):
+    __tablename__ = "revenue_at_risk_alert_configs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, unique=True)
+    threshold_amount = Column(Float, nullable=False, default=10000.0)
+    channel = Column(String, nullable=False, default="slack")
+    enabled = Column(Boolean, nullable=False, default=True)
+    last_alerted_at = Column(DateTime(timezone=True), nullable=True)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    tenant = relationship("Tenant")
+

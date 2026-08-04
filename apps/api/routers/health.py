@@ -219,3 +219,96 @@ async def get_expansion_signal(
         top_drivers=top_drivers,
         suggested_upsell_type=upsell_type
     )
+
+from fastapi import Query
+from pydantic import Field
+from apps.api.models import RevenueAtRiskSnapshot, RevenueAtRiskAlertConfig
+from apps.api.core.analytics.revenue_at_risk import calculate_tenant_revenue_at_risk
+
+class RevenueAtRiskAlertConfigSchema(BaseModel):
+    threshold_amount: float = Field(..., ge=0.0)
+    channel: str = "slack"
+    enabled: bool = True
+
+@router.get("/{tenant_id}/analytics/revenue-at-risk")
+async def get_revenue_at_risk(
+    tenant_id: uuid.UUID,
+    horizon_days: int = Query(90, enum=[30, 60, 90]),
+    db: AsyncSession = Depends(get_db),
+    current_user: Any = Depends(get_current_user)
+):
+    check_tenant_access(current_user, tenant_id)
+    metrics = await calculate_tenant_revenue_at_risk(db, tenant_id, horizon_days=horizon_days)
+    return metrics
+
+@router.get("/{tenant_id}/analytics/revenue-at-risk-snapshots")
+async def get_revenue_at_risk_snapshots(
+    tenant_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: Any = Depends(get_current_user)
+):
+    check_tenant_access(current_user, tenant_id)
+    stmt = select(RevenueAtRiskSnapshot).where(
+        RevenueAtRiskSnapshot.tenant_id == tenant_id
+    ).order_by(RevenueAtRiskSnapshot.as_of_date.asc())
+
+    res = await db.execute(stmt)
+    snapshots = res.scalars().all()
+    return [
+        {
+            "id": str(s.id),
+            "as_of_date": s.as_of_date.strftime("%Y-%m-%d") if hasattr(s.as_of_date, "strftime") else str(s.as_of_date),
+            "horizon_30d_expected_loss": s.horizon_30d_expected_loss,
+            "horizon_60d_expected_loss": s.horizon_60d_expected_loss,
+            "horizon_90d_expected_loss": s.horizon_90d_expected_loss,
+            "by_plan_breakdown": s.by_plan_breakdown,
+            "by_cohort_breakdown": s.by_cohort_breakdown
+        }
+        for s in snapshots
+    ]
+
+@router.get("/{tenant_id}/analytics/revenue-at-risk-config", response_model=RevenueAtRiskAlertConfigSchema)
+async def get_revenue_at_risk_config(
+    tenant_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: Any = Depends(get_current_user)
+):
+    check_tenant_access(current_user, tenant_id)
+    res = await db.execute(select(RevenueAtRiskAlertConfig).where(RevenueAtRiskAlertConfig.tenant_id == tenant_id))
+    config = res.scalars().first()
+    if not config:
+        return RevenueAtRiskAlertConfigSchema(threshold_amount=10000.0, channel="slack", enabled=True)
+    return RevenueAtRiskAlertConfigSchema(
+        threshold_amount=config.threshold_amount,
+        channel=config.channel,
+        enabled=config.enabled
+    )
+
+@router.put("/{tenant_id}/analytics/revenue-at-risk-config", response_model=RevenueAtRiskAlertConfigSchema)
+async def update_revenue_at_risk_config(
+    tenant_id: uuid.UUID,
+    payload: RevenueAtRiskAlertConfigSchema,
+    db: AsyncSession = Depends(get_db),
+    current_user: Any = Depends(get_current_user)
+):
+    check_tenant_access(current_user, tenant_id)
+    res = await db.execute(select(RevenueAtRiskAlertConfig).where(RevenueAtRiskAlertConfig.tenant_id == tenant_id))
+    config = res.scalars().first()
+    if not config:
+        config = RevenueAtRiskAlertConfig(
+            tenant_id=tenant_id,
+            threshold_amount=payload.threshold_amount,
+            channel=payload.channel,
+            enabled=payload.enabled,
+            updated_at=datetime.now(timezone.utc)
+        )
+        db.add(config)
+    else:
+        config.threshold_amount = payload.threshold_amount
+        config.channel = payload.channel
+        config.enabled = payload.enabled
+        config.updated_at = datetime.now(timezone.utc)
+
+    await db.commit()
+    return payload
+
