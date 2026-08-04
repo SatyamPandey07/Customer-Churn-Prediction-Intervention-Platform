@@ -264,4 +264,87 @@ async def record_exit_survey(
         "submitted_at": survey.submitted_at.isoformat() if hasattr(survey.submitted_at, "isoformat") else str(survey.submitted_at)
     }
 
+from apps.api.core.analytics.cohorts import get_cohort_breakdown
+from apps.api.core.analytics.benchmarks import get_industry_benchmark
+from apps.api.core.analytics.renewals import get_renewals_at_risk, create_or_update_contract
+
+class CreateContractPayload(BaseModel):
+    renewal_date: datetime
+    contract_term_months: int = 12
+    auto_renew: bool = True
+    contract_value_mrr: Optional[float] = None
+
+@router.get("/tenants/{tenant_id}/analytics/cohorts")
+async def get_cohorts_endpoint(
+    tenant_id: uuid.UUID,
+    dimension: str = Query("plan_tier", enum=["plan_tier", "signup_month", "industry", "channel"]),
+    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(require_role([Role.owner, Role.admin, Role.analyst, Role.viewer]))
+):
+    user_tenant_id = uuid.UUID(str(user["tenant_id"]))
+    if user_tenant_id != tenant_id:
+        raise HTTPException(status_code=403, detail="Not authorized for this tenant")
+
+    cohorts = await get_cohort_breakdown(db, tenant_id, dimension)
+    return {"tenant_id": str(tenant_id), "dimension": dimension, "cohorts": cohorts}
+
+@router.get("/tenants/{tenant_id}/analytics/benchmark")
+async def get_benchmark_endpoint(
+    tenant_id: uuid.UUID,
+    segment: str = Query("fintech"),
+    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(require_role([Role.owner, Role.admin, Role.analyst, Role.viewer]))
+):
+    user_tenant_id = uuid.UUID(str(user["tenant_id"]))
+    if user_tenant_id != tenant_id:
+        raise HTTPException(status_code=403, detail="Not authorized for this tenant")
+
+    benchmark = await get_industry_benchmark(db, tenant_id, segment)
+    return benchmark
+
+@router.get("/tenants/{tenant_id}/analytics/renewals-at-risk")
+async def get_renewals_at_risk_endpoint(
+    tenant_id: uuid.UUID,
+    window_days: int = Query(90, ge=1, le=365),
+    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(require_role([Role.owner, Role.admin, Role.analyst, Role.viewer]))
+):
+    user_tenant_id = uuid.UUID(str(user["tenant_id"]))
+    if user_tenant_id != tenant_id:
+        raise HTTPException(status_code=403, detail="Not authorized for this tenant")
+
+    renewals = await get_renewals_at_risk(db, tenant_id, window_days)
+    return renewals
+
+@router.post("/tenants/{tenant_id}/customers/{customer_id}/contract")
+async def upsert_contract_endpoint(
+    tenant_id: uuid.UUID,
+    customer_id: uuid.UUID,
+    payload: CreateContractPayload,
+    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(require_role([Role.owner, Role.admin]))
+):
+    user_tenant_id = uuid.UUID(str(user["tenant_id"]))
+    if user_tenant_id != tenant_id:
+        raise HTTPException(status_code=403, detail="Not authorized for this tenant")
+
+    contract = await create_or_update_contract(
+        db=db,
+        tenant_id=tenant_id,
+        customer_id=customer_id,
+        renewal_date=payload.renewal_date,
+        contract_term_months=payload.contract_term_months,
+        auto_renew=payload.auto_renew,
+        contract_value_mrr=payload.contract_value_mrr
+    )
+    return {
+        "id": str(contract.id),
+        "customer_id": str(contract.customer_id),
+        "contract_term_months": contract.contract_term_months,
+        "renewal_date": contract.renewal_date.strftime("%Y-%m-%d"),
+        "auto_renew": contract.auto_renew,
+        "contract_value_mrr": contract.contract_value_mrr
+    }
+
+
 
