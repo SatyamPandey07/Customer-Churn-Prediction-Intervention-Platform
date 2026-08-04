@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, func, case, Integer
 from apps.api.core.deps import get_db, require_role
 from apps.api.models import User, Intervention, InterventionOutcome, Campaign, RoiReport, Role
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import math
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
@@ -215,4 +215,53 @@ async def update_revenue_at_risk_config(
 
     await db.commit()
     return payload
+
+from apps.api.core.analytics.attribution import get_tenant_attribution_report, get_explanation_validation_report
+from apps.api.core.surveys.engine import submit_exit_survey
+
+class SubmitExitSurveyPayload(BaseModel):
+    reason_category: str  # price, missing_features, poor_support, usability, competitor, other
+    free_text: Optional[str] = None
+
+@router.get("/tenants/{tenant_id}/analytics/attribution")
+async def get_attribution_report(
+    tenant_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(require_role([Role.owner, Role.admin, Role.analyst, Role.viewer]))
+):
+    user_tenant_id = uuid.UUID(str(user["tenant_id"]))
+    if user_tenant_id != tenant_id:
+        raise HTTPException(status_code=403, detail="Not authorized for this tenant")
+
+    report = await get_tenant_attribution_report(db, tenant_id)
+    return report
+
+@router.get("/tenants/{tenant_id}/analytics/explanation-validation")
+async def get_explanation_validation_report_endpoint(
+    tenant_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(require_role([Role.owner, Role.admin, Role.analyst, Role.viewer]))
+):
+    user_tenant_id = uuid.UUID(str(user["tenant_id"]))
+    if user_tenant_id != tenant_id:
+        raise HTTPException(status_code=403, detail="Not authorized for this tenant")
+
+    report = await get_explanation_validation_report(db, tenant_id)
+    return report
+
+@router.post("/tenants/{tenant_id}/customers/{customer_id}/exit-surveys")
+async def record_exit_survey(
+    tenant_id: uuid.UUID,
+    customer_id: uuid.UUID,
+    payload: SubmitExitSurveyPayload,
+    db: AsyncSession = Depends(get_db)
+):
+    survey = await submit_exit_survey(db, tenant_id, customer_id, payload.reason_category, payload.free_text)
+    return {
+        "id": str(survey.id),
+        "customer_id": str(customer_id),
+        "reason_category": survey.reason_category,
+        "submitted_at": survey.submitted_at.isoformat() if hasattr(survey.submitted_at, "isoformat") else str(survey.submitted_at)
+    }
+
 
