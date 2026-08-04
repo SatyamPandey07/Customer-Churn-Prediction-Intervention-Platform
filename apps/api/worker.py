@@ -5,6 +5,7 @@ import os
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from apps.api.core.deps import AsyncSessionLocal
+from apps.api.core import deps
 from apps.api.core.ingestion.adapters import get_adapter
 from apps.api.core.queue import get_redis_settings
 from arq.cron import cron
@@ -36,7 +37,7 @@ async def batch_score_churn(ctx):
         logger.info("Running nightly unified batch scoring job...")
         now = datetime.now(timezone.utc)
         
-        async with AsyncSessionLocal() as session:
+        async with deps.AsyncSessionLocal() as session:
             # Get all distinct active tenants
             tenants_res = await session.execute(sqlalchemy.select(Tenant.id).where(Tenant.is_active == True))
             tenant_ids = tenants_res.scalars().all()
@@ -244,6 +245,64 @@ async def generate_weekly_roi_reports(ctx):
             await calculate_roi(session, str(tenant_id), start_date, now)
     logger.info("Finished generate_weekly_roi_reports job.")
 
+from apps.api.models import RevenueAtRiskSnapshot
+from apps.api.core.analytics.revenue_at_risk import calculate_tenant_revenue_at_risk, evaluate_revenue_at_risk_alert
+
+async def snapshot_revenue_at_risk(ctx):
+    """
+    Daily cron job to snapshot revenue at risk figures across horizons and check threshold alerts.
+    """
+    logger.info("Running snapshot_revenue_at_risk job...")
+    now = datetime.now(timezone.utc)
+    today_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+
+    async with deps.AsyncSessionLocal() as session:
+        tenants_res = await session.execute(sqlalchemy.select(Tenant.id).where(Tenant.is_active == True))
+        tenant_ids = tenants_res.scalars().all()
+
+        for tenant_id in tenant_ids:
+            logger.info(f"Snapshotted revenue-at-risk for tenant {tenant_id}")
+            await session.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
+
+            metrics_30 = await calculate_tenant_revenue_at_risk(session, tenant_id, horizon_days=30)
+            metrics_60 = await calculate_tenant_revenue_at_risk(session, tenant_id, horizon_days=60)
+            metrics_90 = await calculate_tenant_revenue_at_risk(session, tenant_id, horizon_days=90)
+
+            # Check if snapshot exists for today
+            res_snap = await session.execute(
+                sqlalchemy.select(RevenueAtRiskSnapshot)
+                .where(RevenueAtRiskSnapshot.tenant_id == tenant_id)
+                .where(RevenueAtRiskSnapshot.as_of_date == today_start)
+            )
+            snapshot = res_snap.scalars().first()
+
+            if not snapshot:
+                snapshot = RevenueAtRiskSnapshot(
+                    id=uuid.uuid4(),
+                    tenant_id=tenant_id,
+                    as_of_date=today_start,
+                    horizon_30d_expected_loss=metrics_30["total_expected_loss"],
+                    horizon_60d_expected_loss=metrics_60["total_expected_loss"],
+                    horizon_90d_expected_loss=metrics_90["total_expected_loss"],
+                    by_plan_breakdown=metrics_90["by_segment"]["by_plan"],
+                    by_cohort_breakdown=metrics_90["by_segment"]["by_cohort"],
+                    created_at=now
+                )
+                session.add(snapshot)
+            else:
+                snapshot.horizon_30d_expected_loss = metrics_30["total_expected_loss"]
+                snapshot.horizon_60d_expected_loss = metrics_60["total_expected_loss"]
+                snapshot.horizon_90d_expected_loss = metrics_90["total_expected_loss"]
+                snapshot.by_plan_breakdown = metrics_90["by_segment"]["by_plan"]
+                snapshot.by_cohort_breakdown = metrics_90["by_segment"]["by_cohort"]
+
+            await session.commit()
+
+            # Evaluate alert thresholds
+            await evaluate_revenue_at_risk_alert(session, tenant_id, metrics_90["total_expected_loss"])
+
+    logger.info("Finished snapshot_revenue_at_risk job.")
+
 class WorkerSettings:
     functions = [process_webhook]
     cron_jobs = [
@@ -251,6 +310,8 @@ class WorkerSettings:
         cron(run_campaign_evaluations, hour=3, minute=0),
         cron(run_outcome_tracking, hour=4, minute=0),
         # Run ROI calculation every Monday (weekday=0) at 5 AM
-        cron(generate_weekly_roi_reports, weekday={0}, hour=5, minute=0)
+        cron(generate_weekly_roi_reports, weekday={0}, hour=5, minute=0),
+        cron(snapshot_revenue_at_risk, hour=1, minute=0)
     ]
     redis_settings = get_redis_settings()
+
