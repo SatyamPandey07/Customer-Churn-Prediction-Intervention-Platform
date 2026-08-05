@@ -39,9 +39,13 @@ class Tenant(Base):
     plan_tier = Column(Enum(PlanTier, name='plantier'), nullable=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     is_active = Column(Boolean, default=True)
+    benchmarking_opt_in = Column(Boolean, nullable=False, default=False)
+    industry_vertical = Column(String, nullable=True)  # fintech, saas, healthcare, ecommerce
+    company_size_band = Column(String, nullable=True)  # 1-50, 51-200, 201-1000, 1000+
 
     users = relationship("User", back_populates="tenant")
     audit_logs = relationship("AuditLog", back_populates="tenant")
+
 
 class User(Base):
     __tablename__ = "users"
@@ -111,9 +115,12 @@ class Customer(Base):
     expansion_computed_at = Column(DateTime(timezone=True), nullable=True)
 
     stated_churn_reason = Column(String, nullable=True)
-
+    industry = Column(String, nullable=True)
+    acquisition_channel = Column(String, nullable=True)  # inbound, outbound, referral, paid
+    signup_month = Column(String, nullable=True)  # YYYY-MM format
 
     health_score = Column(Float, nullable=True)
+
     health_score_computed_at = Column(DateTime(timezone=True), nullable=True)
 
 class CustomerEvent(Base):
@@ -401,6 +408,22 @@ class ExitSurvey(Base):
 
     tenant = relationship("Tenant")
     customer = relationship("Customer")
+
+class Contract(Base):
+    __tablename__ = "contracts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
+    contract_term_months = Column(Integer, nullable=False, default=12)
+    renewal_date = Column(DateTime(timezone=True), nullable=False)
+    auto_renew = Column(Boolean, nullable=False, default=True)
+    contract_value_mrr = Column(Float, nullable=False, default=0.0)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    tenant = relationship("Tenant")
+    customer = relationship("Customer")
+
 
 
 class ApiKey(Base):
