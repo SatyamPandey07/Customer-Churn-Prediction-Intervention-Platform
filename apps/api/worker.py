@@ -1,21 +1,20 @@
-import uuid
 import logging
+import uuid
+from datetime import datetime, timezone
+
 import sqlalchemy
-import os
+from apps.api.core import deps
+from apps.api.core.deps import AsyncSessionLocal
+from apps.api.core.ingestion.adapters import get_adapter
+from apps.api.core.ml.features import extract_features
+from apps.api.core.ml.predict import predict_churn
+from apps.api.core.observability import setup_observability
+from apps.api.core.queue import get_redis_settings, publish_churn_update
+from apps.api.models import Customer, CustomerEvent, Tenant
+from arq.cron import cron
+from opentelemetry import trace
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from apps.api.core.deps import AsyncSessionLocal
-from apps.api.core import deps
-from apps.api.core.ingestion.adapters import get_adapter
-from apps.api.core.queue import get_redis_settings
-from arq.cron import cron
-from datetime import datetime, timezone
-from apps.api.models import Customer, CustomerEvent, Tenant
-from apps.api.core.ml.predict import predict_churn
-from apps.api.core.ml.features import extract_features
-from apps.api.core.queue import publish_churn_update
-from opentelemetry import trace
-from apps.api.core.observability import setup_observability
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +22,10 @@ async def startup(ctx):
     setup_observability()
     ctx["tracer"] = trace.get_tracer(__name__)
 
-from apps.api.models import Customer, CustomerEvent, Tenant, HealthScoreConfig, HealthScore
-from apps.api.core.ml.predict import predict_churn
 from apps.api.core.ml.expansion import predict_expansion
 from apps.api.core.ml.health import compute_health_score
+from apps.api.models import HealthScore, HealthScoreConfig
+
 
 async def batch_score_churn(ctx):
     """
@@ -196,10 +195,12 @@ async def process_webhook(ctx, tenant_id: str, source: str, payload: dict):
         
         await session.commit()
 
-from apps.api.core.outreach.engine import evaluate_campaigns
+from datetime import UTC, timedelta
+
 from apps.api.core.analytics.outcomes import track_intervention_outcomes
 from apps.api.core.analytics.roi import calculate_roi
-from datetime import timedelta
+from apps.api.core.outreach.engine import evaluate_campaigns
+
 
 async def run_campaign_evaluations(ctx):
     """
@@ -238,7 +239,7 @@ async def generate_weekly_roi_reports(ctx):
     Cron job to generate ROI reports weekly.
     """
     logger.info("Running generate_weekly_roi_reports job...")
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     start_date = now - timedelta(days=7)
     
     async with AsyncSessionLocal() as session:
@@ -250,16 +251,17 @@ async def generate_weekly_roi_reports(ctx):
             await calculate_roi(session, str(tenant_id), start_date, now)
     logger.info("Finished generate_weekly_roi_reports job.")
 
-from apps.api.models import RevenueAtRiskSnapshot
 from apps.api.core.analytics.revenue_at_risk import calculate_tenant_revenue_at_risk, evaluate_revenue_at_risk_alert
+from apps.api.models import RevenueAtRiskSnapshot
+
 
 async def snapshot_revenue_at_risk(ctx):
     """
     Daily cron job to snapshot revenue at risk figures across horizons and check threshold alerts.
     """
     logger.info("Running snapshot_revenue_at_risk job...")
-    now = datetime.now(timezone.utc)
-    today_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+    now = datetime.now(UTC)
+    today_start = datetime(now.year, now.month, now.day, tzinfo=UTC)
 
     async with deps.AsyncSessionLocal() as session:
         tenants_res = await session.execute(sqlalchemy.select(Tenant.id).where(Tenant.is_active == True))
@@ -307,6 +309,7 @@ async def snapshot_revenue_at_risk(ctx):
             await evaluate_revenue_at_risk_alert(session, tenant_id, metrics_90["total_expected_loss"])
 
 from apps.api.core.playbooks.engine import process_active_playbook_runs
+
 
 async def process_active_playbooks(ctx):
     """

@@ -1,16 +1,15 @@
 import uuid
-from typing import Dict, Any, List
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import UTC, datetime
+
+from apps.api.core.deps import get_current_user, get_db
+from apps.api.core.ml.features import extract_features
+from apps.api.core.ml.interventions import InterventionItem, generate_intervention
+from apps.api.core.ml.predict import predict_churn
+from apps.api.models import Customer
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime, timezone
-from pydantic import BaseModel
-
-from apps.api.core.deps import get_db, get_current_user
-from apps.api.models import Customer
-from apps.api.core.ml.predict import predict_churn
-from apps.api.core.ml.features import extract_features
-from apps.api.core.ml.interventions import generate_intervention, InterventionItem
 
 router = APIRouter(prefix="/customers", tags=["Explanations"])
 
@@ -23,8 +22,8 @@ class ChurnDriver(BaseModel):
 class ChurnExplanationResponse(BaseModel):
     risk_tier: str
     probability: float
-    top_drivers: List[ChurnDriver]
-    interventions: List[InterventionItem]
+    top_drivers: list[ChurnDriver]
+    interventions: list[InterventionItem]
     intervention_confidence: float
 
 @router.get("/{customer_id}/churn-explanation", response_model=ChurnExplanationResponse)
@@ -45,7 +44,7 @@ async def get_churn_explanation(
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
         
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     
     # 1. Compute Features
     df_features = await extract_features(db, tenant_id, now)

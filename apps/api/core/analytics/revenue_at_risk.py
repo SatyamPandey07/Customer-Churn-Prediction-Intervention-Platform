@@ -1,12 +1,13 @@
+import logging
 import math
 import uuid
-import logging
-from typing import Dict, Any, List
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
+from apps.api.core.outreach.adapters import get_adapter
+from apps.api.models import Customer, RevenueAtRiskAlertConfig
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from apps.api.models import Customer, RevenueAtRiskAlertConfig
-from apps.api.core.outreach.adapters import get_adapter
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ METHODOLOGY_NOTE = (
     "This is a probabilistic forecast, not a guaranteed financial loss."
 )
 
-def compute_revenue_at_risk_metrics(customers: List[Customer], horizon_days: int = 90) -> Dict[str, Any]:
+def compute_revenue_at_risk_metrics(customers: list[Customer], horizon_days: int = 90) -> dict[str, Any]:
     """
     Computes expected revenue loss, variance/confidence interval, segment breakdown,
     and top exposure accounts across given customer list.
@@ -27,8 +28,8 @@ def compute_revenue_at_risk_metrics(customers: List[Customer], horizon_days: int
     total_mrr = 0.0
     total_variance = 0.0
 
-    plan_groups: Dict[str, Dict[str, Any]] = {}
-    cohort_groups: Dict[str, Dict[str, Any]] = {}
+    plan_groups: dict[str, dict[str, Any]] = {}
+    cohort_groups: dict[str, dict[str, Any]] = {}
     exposure_list = []
 
     for c in customers:
@@ -127,7 +128,7 @@ def compute_revenue_at_risk_metrics(customers: List[Customer], horizon_days: int
         "top_10_accounts_by_dollar_exposure": top_10_exposure
     }
 
-async def calculate_tenant_revenue_at_risk(db: AsyncSession, tenant_id: uuid.UUID, horizon_days: int = 90) -> Dict[str, Any]:
+async def calculate_tenant_revenue_at_risk(db: AsyncSession, tenant_id: uuid.UUID, horizon_days: int = 90) -> dict[str, Any]:
     res = await db.execute(
         select(Customer).where(Customer.tenant_id == tenant_id)
     )
@@ -145,7 +146,7 @@ async def evaluate_revenue_at_risk_alert(db: AsyncSession, tenant_id: uuid.UUID,
         return False
 
     if current_rar_90d >= config.threshold_amount:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if config.last_alerted_at is None or (now - config.last_alerted_at) > timedelta(hours=24):
             adapter = get_adapter(config.channel or "slack")
             # Fetch a sample customer or send tenant-wide alert

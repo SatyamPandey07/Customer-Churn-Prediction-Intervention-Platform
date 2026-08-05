@@ -1,12 +1,12 @@
 import uuid
-from typing import List, Dict, Any, Optional
-from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, ConfigDict
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import UTC, datetime
+from typing import Any
 
 from apps.api.core.deps import get_db, require_role
-from apps.api.models import Role, Tenant, AuditLog
+from apps.api.models import AuditLog, Role
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
 
@@ -93,16 +93,16 @@ DEFAULT_INTEGRATIONS = [
 ]
 
 class IntegrationConfigRequest(BaseModel):
-    api_key: Optional[str] = None
-    webhook_secret: Optional[str] = None
-    subdomain: Optional[str] = None
+    api_key: str | None = None
+    webhook_secret: str | None = None
+    subdomain: str | None = None
 
 class TestConnectionResponse(BaseModel):
     success: bool
     latency_ms: int
     message: str
 
-@router.get("", response_model=List[Dict[str, Any]])
+@router.get("", response_model=list[dict[str, Any]])
 async def list_integrations(
     db: AsyncSession = Depends(get_db),
     user: dict = Depends(require_role([Role.owner, Role.admin, Role.analyst, Role.viewer]))
@@ -123,7 +123,7 @@ async def configure_integration(
         raise HTTPException(status_code=404, detail="Integration source not found")
 
     integration["status"] = "connected"
-    integration["last_sync"] = datetime.now(timezone.utc).isoformat()
+    integration["last_sync"] = datetime.now(UTC).isoformat()
     if req.api_key:
         integration["config"]["api_key"] = f"{req.api_key[:4]}••••••••{req.api_key[-4:]}"
 
@@ -167,7 +167,7 @@ async def trigger_manual_sync(
     if not integration:
         raise HTTPException(status_code=404, detail="Integration source not found")
 
-    integration["last_sync"] = datetime.now(timezone.utc).isoformat()
+    integration["last_sync"] = datetime.now(UTC).isoformat()
     integration["events_count_24h"] += 150
 
     return {"message": f"Manual sync completed for {integration['name']}. Ingested 150 new telemetry events.", "last_sync": integration["last_sync"]}

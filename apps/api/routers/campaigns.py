@@ -1,31 +1,31 @@
 import uuid
-from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, ConfigDict
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from typing import Any
 
 from apps.api.core.deps import get_db, require_role
-from apps.api.models import Campaign, Role, User
+from apps.api.models import Campaign, Role
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
 
 class CampaignCreate(BaseModel):
     name: str
-    trigger_rule: Dict[str, Any]
+    trigger_rule: dict[str, Any]
     intervention_type: str
     channel: str
-    template: Optional[str] = None
+    template: str | None = None
     status: str = "draft"
 
 class CampaignResponse(CampaignCreate):
     id: uuid.UUID
     tenant_id: uuid.UUID
-    created_by: Optional[uuid.UUID]
+    created_by: uuid.UUID | None
     
     model_config = ConfigDict(from_attributes=True)
 
-@router.get("", response_model=List[CampaignResponse])
+@router.get("", response_model=list[CampaignResponse])
 async def list_campaigns(
     db: AsyncSession = Depends(get_db),
     user: dict = Depends(require_role([Role.owner, Role.admin, Role.analyst, Role.viewer]))

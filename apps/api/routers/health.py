@@ -1,16 +1,16 @@
 import uuid
-from typing import Optional, Dict, Any
-from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from datetime import UTC, datetime
+from typing import Any
 
-from apps.api.core.deps import get_db, get_current_user
-from apps.api.models import Customer, HealthScore, HealthScoreConfig
-from apps.api.core.ml.health import compute_health_score
+from apps.api.core.deps import get_current_user, get_db
 from apps.api.core.ml.expansion import predict_expansion
 from apps.api.core.ml.features import extract_features
+from apps.api.core.ml.health import compute_health_score
+from apps.api.models import Customer, HealthScore, HealthScoreConfig
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/tenants", tags=["health-scores"])
 
@@ -32,7 +32,7 @@ class HealthScoreResponse(BaseModel):
     health_score: float
     version: str
     as_of_date: datetime
-    breakdown: Dict[str, Any]
+    breakdown: dict[str, Any]
 
 class ExpansionSignalResponse(BaseModel):
     probability: float
@@ -98,7 +98,7 @@ async def update_health_score_config(
             payment_health_weight=payload.payment_health_weight,
             support_sentiment_weight=payload.support_sentiment_weight,
             engagement_recency_weight=payload.engagement_recency_weight,
-            updated_at=datetime.now(timezone.utc)
+            updated_at=datetime.now(UTC)
         )
         db.add(config)
     else:
@@ -107,7 +107,7 @@ async def update_health_score_config(
         config.payment_health_weight = payload.payment_health_weight
         config.support_sentiment_weight = payload.support_sentiment_weight
         config.engagement_recency_weight = payload.engagement_recency_weight
-        config.updated_at = datetime.now(timezone.utc)
+        config.updated_at = datetime.now(UTC)
 
     await db.commit()
     return payload
@@ -145,7 +145,7 @@ async def get_customer_health_score(
             breakdown=hs_record.components
         )
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     res_cfg = await db.execute(select(HealthScoreConfig).where(HealthScoreConfig.tenant_id == tenant_id))
     cfg = res_cfg.scalars().first()
     weights = {
@@ -190,7 +190,7 @@ async def get_expansion_signal(
     if not customer:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found")
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     df_features = await extract_features(db, tenant_id, now)
     feature_dict = {}
     if not df_features.empty:
@@ -220,10 +220,11 @@ async def get_expansion_signal(
         suggested_upsell_type=upsell_type
     )
 
+from apps.api.core.analytics.revenue_at_risk import calculate_tenant_revenue_at_risk
+from apps.api.models import RevenueAtRiskAlertConfig, RevenueAtRiskSnapshot
 from fastapi import Query
 from pydantic import Field
-from apps.api.models import RevenueAtRiskSnapshot, RevenueAtRiskAlertConfig
-from apps.api.core.analytics.revenue_at_risk import calculate_tenant_revenue_at_risk
+
 
 class RevenueAtRiskAlertConfigSchema(BaseModel):
     threshold_amount: float = Field(..., ge=0.0)
@@ -300,14 +301,14 @@ async def update_revenue_at_risk_config(
             threshold_amount=payload.threshold_amount,
             channel=payload.channel,
             enabled=payload.enabled,
-            updated_at=datetime.now(timezone.utc)
+            updated_at=datetime.now(UTC)
         )
         db.add(config)
     else:
         config.threshold_amount = payload.threshold_amount
         config.channel = payload.channel
         config.enabled = payload.enabled
-        config.updated_at = datetime.now(timezone.utc)
+        config.updated_at = datetime.now(UTC)
 
     await db.commit()
     return payload

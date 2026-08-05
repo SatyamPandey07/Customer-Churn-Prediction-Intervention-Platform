@@ -331,7 +331,7 @@ export default function ClientDashboard({ initialCustomers }: { initialCustomers
               </div>
               <div className="text-xs font-bold text-slate-900 dark:text-white">{explanation?.intervention_recommendation?.strategy}</div>
               <p className="text-xs text-slate-800 dark:text-slate-300 italic bg-white dark:bg-slate-950/60 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/80">
-                "{explanation?.intervention_recommendation?.copy}"
+                &quot;{explanation?.intervention_recommendation?.copy}&quot;
               </p>
             </div>
 

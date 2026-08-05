@@ -1,14 +1,16 @@
 import datetime
-from typing import Dict, Any, List
+from typing import Any
+
 from ..base import SourceAdapter
 from ..schema import CustomerEventSchema
+
 
 class StripeAdapter(SourceAdapter):
     @property
     def source_name(self) -> str:
         return "stripe"
 
-    def normalize_payload(self, payload: Dict[str, Any]) -> List[CustomerEventSchema]:
+    def normalize_payload(self, payload: dict[str, Any]) -> list[CustomerEventSchema]:
         event_type = payload.get("type", "unknown")
         event_id = payload.get("id")
         created = payload.get("created")
@@ -20,7 +22,7 @@ class StripeAdapter(SourceAdapter):
             # Skip invalid payload
             return []
 
-        occurred_at = datetime.datetime.fromtimestamp(created, tz=datetime.timezone.utc)
+        occurred_at = datetime.datetime.fromtimestamp(created, tz=datetime.UTC)
 
         return [
             CustomerEventSchema(

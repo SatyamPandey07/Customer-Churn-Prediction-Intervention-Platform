@@ -1,7 +1,7 @@
-from datetime import datetime
-from apps.api.core.ingestion.adapters.stripe import StripeAdapter
-from apps.api.core.ingestion.adapters.segment import SegmentAdapter
 from apps.api.core.ingestion.adapters.amplitude import AmplitudeAdapter
+from apps.api.core.ingestion.adapters.segment import SegmentAdapter
+from apps.api.core.ingestion.adapters.stripe import StripeAdapter
+
 
 def test_stripe_adapter():
     payload = {

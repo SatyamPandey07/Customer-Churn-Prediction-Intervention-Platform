@@ -1,15 +1,14 @@
 import json
+import logging
 import math
 import uuid
-import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timezone, timedelta
-from sqlalchemy import select, and_
-from sqlalchemy.ext.asyncio import AsyncSession
-import redis.asyncio as redis
+from datetime import UTC, datetime, timedelta
 
-from apps.api.models import Customer, CustomerEvent, AnomalyEvent, Campaign, Intervention
+import redis.asyncio as redis
 from apps.api.core.queue import REDIS_URL
+from apps.api.models import AnomalyEvent, Campaign, Customer, CustomerEvent
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -57,16 +56,15 @@ async def trigger_campaigns_for_anomaly(
         if "anomaly_type" in rule:
             target_type = rule["anomaly_type"]
             target_severity = rule.get("severity")
-            if target_type == anomaly_type:
-                if not target_severity or target_severity == severity:
-                    await _evaluate_single_campaign(db, tenant_id, campaign)
+            if target_type == anomaly_type and (not target_severity or target_severity == severity):
+                await _evaluate_single_campaign(db, tenant_id, campaign)
 
 async def detect_anomalies_for_customer(
     db: AsyncSession,
     tenant_id: uuid.UUID,
     customer_id: uuid.UUID,
     cooldown_hours: int = 24
-) -> List[AnomalyEvent]:
+) -> list[AnomalyEvent]:
     """
     Computes rolling statistics for customer, flags anomalies (usage cliff, login gap, payment spike, feature abandonment),
     applies 24h debouncing, publishes live update, and triggers campaign engine hooks.
@@ -74,7 +72,7 @@ async def detect_anomalies_for_customer(
     import sqlalchemy
     await db.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     start_30d = now - timedelta(days=30)
 
     cutoff_cooldown = now - timedelta(hours=cooldown_hours)
@@ -99,7 +97,7 @@ async def detect_anomalies_for_customer(
     events = res_e.scalars().all()
 
     # Daily activity breakdown
-    daily_counts: Dict[str, int] = {}
+    daily_counts: dict[str, int] = {}
     for day_i in range(30):
         day_key = (now - timedelta(days=day_i)).strftime("%Y-%m-%d")
         daily_counts[day_key] = 0
@@ -118,7 +116,7 @@ async def detect_anomalies_for_customer(
     variance_past = sum((x - mean_past) ** 2 for x in past_counts) / max(1, len(past_counts))
     stddev_past = max(1.0, math.sqrt(variance_past))
 
-    detected_anomalies: List[AnomalyEvent] = []
+    detected_anomalies: list[AnomalyEvent] = []
 
     # Check 1: Usage Cliff (Z-score <= -2.0 when baseline mean >= 3.0)
     if mean_past >= 3.0:
@@ -180,7 +178,7 @@ async def detect_anomalies_for_customer(
         })
 
     # 3. Debounce & Save Anomalies
-    created_records: List[AnomalyEvent] = []
+    created_records: list[AnomalyEvent] = []
     for candidate in detected_anomalies:
         anom_type = candidate["type"]
         sev = candidate["severity"]

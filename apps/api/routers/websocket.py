@@ -1,10 +1,10 @@
+import asyncio
 import json
 import logging
-import asyncio
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-import redis.asyncio as redis
 
+import redis.asyncio as redis
 from apps.api.core.queue import REDIS_URL
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["websockets"])

@@ -1,17 +1,18 @@
 import os
 import uuid
-import pandas as pd
-import numpy as np
-import xgboost as xgb
+from datetime import UTC, datetime, timedelta
+
 import joblib
-from datetime import datetime, timedelta, timezone
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import roc_auc_score, precision_score, recall_score, classification_report
-from sqlalchemy import select, text
-from apps.api.models import Customer, CustomerEvent, ChurnFeature
+import numpy as np
+import pandas as pd
+import xgboost as xgb
 from apps.api.core.deps import engine
 from apps.api.core.ml.features import extract_features, save_features
-from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
+from apps.api.models import CustomerEvent
+from sklearn.metrics import precision_score, recall_score, roc_auc_score
+from sklearn.model_selection import train_test_split
+from sqlalchemy import select, text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 AsyncSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
@@ -24,6 +25,7 @@ FEATURE_COLS = [
 ]
 
 from apps.api.core.ml.expansion import train_expansion_model
+
 
 async def prepare_training_data(session: AsyncSession, tenant_id: uuid.UUID, as_of_date: datetime):
     # Enable RLS
@@ -124,7 +126,7 @@ def train_model(X, y):
 
 async def run_training_pipeline(tenant_id: uuid.UUID):
     async with AsyncSessionLocal() as session:
-        as_of_date = datetime.now(timezone.utc) - timedelta(days=30)
+        as_of_date = datetime.now(UTC) - timedelta(days=30)
         X, y_churn, y_expansion = await prepare_training_data(session, tenant_id, as_of_date)
         churn_metrics = train_model(X, y_churn)
         expansion_metrics = train_expansion_model(X, y_expansion)

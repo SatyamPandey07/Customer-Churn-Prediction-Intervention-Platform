@@ -1,8 +1,9 @@
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+
+from apps.api.models import CustomerEvent, Intervention, InterventionOutcome
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
-from apps.api.models import Intervention, InterventionOutcome, CustomerEvent
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +12,7 @@ async def track_intervention_outcomes(db: AsyncSession, tenant_id: str, evaluati
     Evaluates pending interventions older than evaluation_days to determine
     if the customer churned or was retained in that window.
     """
-    cutoff_date = datetime.now(timezone.utc) - timedelta(days=evaluation_days)
+    cutoff_date = datetime.now(UTC) - timedelta(days=evaluation_days)
 
     # Find pending interventions sent before the cutoff date
     stmt = select(Intervention).where(
@@ -47,7 +48,7 @@ async def track_intervention_outcomes(db: AsyncSession, tenant_id: str, evaluati
         else:
             intervention.outcome = InterventionOutcome.retained
 
-        intervention.outcome_recorded_at = datetime.now(timezone.utc)
+        intervention.outcome_recorded_at = datetime.now(UTC)
     
     if pending_interventions:
         await db.commit()

@@ -1,7 +1,8 @@
 import pytest
+from apps.api.models import AuditLog
 from httpx import AsyncClient
 from sqlalchemy import select
-from apps.api.models import AuditLog, RefreshToken, User
+
 
 @pytest.mark.asyncio
 async def test_signup_happy_path(client: AsyncClient, db_session):
@@ -48,7 +49,7 @@ async def test_login_and_logout(client: AsyncClient, db_session):
     assert "access_token" in data
     assert "refresh_token" in data
     
-    access_token = data["access_token"]
+    data["access_token"]
     
     # Refresh
     refresh_response = await client.post("/auth/refresh", json={
@@ -69,22 +70,34 @@ async def test_login_and_logout(client: AsyncClient, db_session):
     assert fail_refresh.status_code == 401
 
 @pytest.mark.asyncio
-async def test_rate_limiting_auth(client: AsyncClient):
-    # Try 6 times rapidly, 6th should fail with 429
+async def test_rate_limiting_auth(client: AsyncClient, setup_redis):
+    """Test auth rate limiting: 5 attempts per minute per IP, 6th should be 429."""
+    import apps.api.core.rate_limit as rl
+    # Ensure clean state
+    try:
+        await rl.redis_client.flushdb()
+    except Exception:
+        pytest.skip("Redis not available for rate limit test")
+
+    # Try 5 times rapidly, all should be 401 (bad credentials, not 429)
     for i in range(5):
         res = await client.post("/auth/login", data={"username": "a", "password": "b"})
-        assert res.status_code == 401 # Unauthorized, but not 429
+        assert res.status_code == 401, f"Request {i+1} expected 401, got {res.status_code}"
         
+    # 6th should fail with 429
     res_6 = await client.post("/auth/login", data={"username": "a", "password": "b"})
     assert res_6.status_code == 429
 
 @pytest.mark.asyncio
-async def test_account_lockout(client: AsyncClient):
-    # Need to simulate 10 failed logins for the SAME email.
-    # We will use a different IP (fake it or just do 10 requests, wait, rate limit is 5 per minute per IP!
-    # If we hit it 10 times from same IP we get 429. Let's just bypass IP check in our test or use different IPs?
-    # Actually, we can just insert directly into redis for the lockout key to test the lockout check.
+async def test_account_lockout(client: AsyncClient, setup_redis):
+    """Test account lockout after 10 failed login attempts."""
     import apps.api.core.rate_limit as rl
+    try:
+        await rl.redis_client.flushdb()
+    except Exception:
+        pytest.skip("Redis not available for lockout test")
+
+    # Set the lockout counter directly in Redis
     await rl.redis_client.set("lockout:auth:locked@test.com", "10")
     
     res = await client.post("/auth/login", data={"username": "locked@test.com", "password": "b"})

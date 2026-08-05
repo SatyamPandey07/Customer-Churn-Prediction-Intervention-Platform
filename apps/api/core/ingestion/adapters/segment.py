@@ -1,14 +1,16 @@
-from datetime import datetime, timezone
-from typing import Dict, Any, List
+from datetime import UTC, datetime
+from typing import Any
+
 from ..base import SourceAdapter
 from ..schema import CustomerEventSchema
+
 
 class SegmentAdapter(SourceAdapter):
     @property
     def source_name(self) -> str:
         return "segment"
 
-    def normalize_payload(self, payload: Dict[str, Any]) -> List[CustomerEventSchema]:
+    def normalize_payload(self, payload: dict[str, Any]) -> list[CustomerEventSchema]:
         # Segment sends track/identify/page/screen calls
         msg_type = payload.get("type", "unknown")
         message_id = payload.get("messageId")
@@ -29,9 +31,9 @@ class SegmentAdapter(SourceAdapter):
             properties = payload.get("properties", {})
 
         try:
-            occurred_at = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+            occurred_at = datetime.fromisoformat(timestamp_str)
         except ValueError:
-            occurred_at = datetime.now(timezone.utc)
+            occurred_at = datetime.now(UTC)
 
         return [
             CustomerEventSchema(

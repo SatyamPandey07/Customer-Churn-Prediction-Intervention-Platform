@@ -1,9 +1,10 @@
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
+
+from apps.api.models import Customer, Intervention, InterventionOutcome, RoiReport, Tenant
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
-from apps.api.models import Intervention, InterventionOutcome, Customer, Tenant, RoiReport
 
 logger = logging.getLogger(__name__)
 

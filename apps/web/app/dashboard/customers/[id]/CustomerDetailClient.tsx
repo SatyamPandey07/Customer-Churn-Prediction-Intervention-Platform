@@ -105,7 +105,7 @@ export default function CustomerDetailPage() {
           <div className="p-4 bg-blue-950/30 border border-blue-500/30 rounded-xl space-y-2">
             <div className="text-xs font-bold text-blue-300">{explanation?.intervention_recommendation?.strategy}</div>
             <p className="text-xs text-slate-300 italic bg-slate-950 p-3 rounded-lg border border-slate-800">
-              "{explanation?.intervention_recommendation?.copy}"
+              &quot;{explanation?.intervention_recommendation?.copy}&quot;
             </p>
           </div>
 

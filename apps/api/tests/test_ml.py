@@ -1,17 +1,24 @@
-import pytest
 import uuid
-import pandas as pd
-from datetime import datetime, timezone
-import os
-import sqlalchemy
+from datetime import UTC, datetime
 
-from apps.api.models import Customer, CustomerEvent, ChurnFeature, PlanTier, Tenant
+import pandas as pd
+import pytest
+import sqlalchemy
 from apps.api.core.ml.features import extract_features
-from apps.api.core.ml.train import train_model
 from apps.api.core.ml.predict import predict_churn
+from apps.api.core.ml.train import train_model
+from apps.api.models import Customer, CustomerEvent, PlanTier, Tenant
+
 
 @pytest.mark.asyncio
-async def test_feature_engineering_and_model(db_session, client):
+async def test_feature_engineering_and_model(db_session, client, setup_redis):
+    # Ensure clean rate limit state
+    import apps.api.core.rate_limit as rl
+    try:
+        await rl.redis_client.flushdb()
+    except Exception:
+        pass
+
     tenant_id = uuid.uuid4()
     
     # 1. Setup Tenant
@@ -21,7 +28,7 @@ async def test_feature_engineering_and_model(db_session, client):
     
     await db_session.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
     
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     
     # Create 20 synthetic customers (10 churned, 10 retained)
     for i in range(20):
@@ -88,16 +95,7 @@ async def test_feature_engineering_and_model(db_session, client):
     
     assert metrics["auc_roc"] >= 0.75
     
-    # 4. Test Predict API
-    # Login as tenant owner to test prediction endpoint
-    await client.post("/auth/signup", json={
-        "tenant_name": "ML API Test", "subdomain": "ml-api", "email": "admin@ml.com", "password": "Password123!"
-    })
-    resp = await client.post("/auth/login", data={"username": "admin@ml.com", "password": "Password123!"})
-    token = resp.json()["access_token"]
-    
-    # Wait, the customer we created is for tenant `tenant_id` which does not have this user.
-    # We should just test predict_churn function directly
+    # 4. Test Predict function directly (avoids needing HTTP auth)
     proba, tier, version = predict_churn(churner.to_dict())
     assert 0.0 <= proba <= 1.0
     assert tier in ["low", "medium", "high", "critical"]

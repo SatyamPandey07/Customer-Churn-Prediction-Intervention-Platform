@@ -1,16 +1,26 @@
-import pytest
 import math
-from datetime import datetime, timedelta, timezone
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import insert
-from apps.api.models import Tenant, User, Customer, Campaign, Intervention, InterventionOutcome, CustomerEvent, RoiReport, PlanTier, Role
+import uuid
+from datetime import UTC, datetime, timedelta
+
+import pytest
+import pytest_asyncio
+import sqlalchemy
 from apps.api.core.analytics.outcomes import track_intervention_outcomes
 from apps.api.core.analytics.roi import calculate_roi
-from apps.api.routers.analytics import wilson_score_interval
 from apps.api.core.security import create_access_token
-import uuid
-import sqlalchemy
-import pytest_asyncio
+from apps.api.models import (
+    Campaign,
+    Customer,
+    CustomerEvent,
+    Intervention,
+    InterventionOutcome,
+    PlanTier,
+    Role,
+    Tenant,
+    User,
+)
+from apps.api.routers.analytics import wilson_score_interval
+from sqlalchemy.ext.asyncio import AsyncSession
 
 pytestmark = pytest.mark.asyncio
 
@@ -63,7 +73,7 @@ async def test_track_intervention_outcomes(client, db_session, test_tenant, user
     camp = Campaign(id=campaign_id, tenant_id=tenant_id, name="Test Campaign", intervention_type="discount", channel="email")
     
     # Intervention sent 35 days ago
-    sent_at = datetime.now(timezone.utc) - timedelta(days=35)
+    sent_at = datetime.now(UTC) - timedelta(days=35)
     i1 = Intervention(id=uuid.uuid4(), tenant_id=tenant_id, customer_id=customer_id, campaign_id=campaign_id, channel="email", status="sent", sent_at=sent_at, outcome=InterventionOutcome.pending)
     
     db_session.add_all([c, camp, i1])
@@ -95,7 +105,7 @@ async def test_calculate_roi(client, db_session, test_tenant, user_headers):
     campaign_id = uuid.uuid4()
     camp = Campaign(id=campaign_id, tenant_id=tenant_id, name="Test Campaign", intervention_type="discount", channel="email")
     
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     # Reatined high-risk customer
     i1 = Intervention(id=uuid.uuid4(), tenant_id=tenant_id, customer_id=customer_id, campaign_id=campaign_id, channel="email", status="sent", sent_at=now, outcome=InterventionOutcome.retained, outcome_recorded_at=now)
     
@@ -119,13 +129,13 @@ async def test_analytics_endpoints(client, db_session, test_tenant, user_headers
     customer_id = uuid.uuid4()
     c = Customer(id=customer_id, tenant_id=tenant_id, external_ids={"stripe": "c3"}, mrr=100.0, churn_risk_tier="high")
     camp = Campaign(id=uuid.uuid4(), tenant_id=tenant_id, name="Camp3", intervention_type="discount", channel="email", variant_group_id="A")
-    i1 = Intervention(id=uuid.uuid4(), tenant_id=tenant_id, customer_id=customer_id, campaign_id=camp.id, channel="email", status="sent", sent_at=datetime.now(timezone.utc), outcome=InterventionOutcome.retained, outcome_recorded_at=datetime.now(timezone.utc))
+    i1 = Intervention(id=uuid.uuid4(), tenant_id=tenant_id, customer_id=customer_id, campaign_id=camp.id, channel="email", status="sent", sent_at=datetime.now(UTC), outcome=InterventionOutcome.retained, outcome_recorded_at=datetime.now(UTC))
     
     db_session.add_all([c, camp, i1])
     await db_session.commit()
     
     # Run ROI generation to ensure a report exists
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     await calculate_roi(db_session, str(tenant_id), now - timedelta(days=7), now + timedelta(days=1))
     
     # Test Performance Endpoint

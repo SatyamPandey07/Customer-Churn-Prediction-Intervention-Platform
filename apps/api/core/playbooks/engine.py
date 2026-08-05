@@ -1,21 +1,20 @@
-import json
-import uuid
 import logging
-from typing import Dict, Any, List, Optional, Tuple
-from datetime import datetime, timezone, timedelta
-from sqlalchemy import select, and_
-from sqlalchemy.ext.asyncio import AsyncSession
+import uuid
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from apps.api.models import PlaybookDefinition, PlaybookRun, CsmProfile, Customer, Intervention
 from apps.api.core.outreach.adapters import get_adapter
+from apps.api.models import CsmProfile, Customer, PlaybookDefinition, PlaybookRun
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
 async def assign_csm_for_human_task(
     db: AsyncSession,
     tenant_id: uuid.UUID,
-    node: Dict[str, Any]
-) -> Tuple[Optional[uuid.UUID], str]:
+    node: dict[str, Any]
+) -> tuple[uuid.UUID | None, str]:
     """
     Auto-assigns human task to the CSM with available capacity and matching specialty.
     If all CSMs are at capacity, queues task as 'unassigned_overflow'.
@@ -51,7 +50,7 @@ async def assign_csm_for_human_task(
     selected_csm.current_active_count += 1
     return selected_csm.user_id, "assigned"
 
-def evaluate_condition(customer: Customer, state_data: Dict[str, Any], node: Dict[str, Any]) -> bool:
+def evaluate_condition(customer: Customer, state_data: dict[str, Any], node: dict[str, Any]) -> bool:
     """
     Evaluates conditional branch against customer metrics or state_data vars.
     """
@@ -83,7 +82,7 @@ async def advance_playbook_run(db: AsyncSession, run_id: uuid.UUID) -> PlaybookR
 
     await db.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{run.tenant_id}'"))
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # If delay timer active and not elapsed
     if run.next_step_at and now < run.next_step_at:

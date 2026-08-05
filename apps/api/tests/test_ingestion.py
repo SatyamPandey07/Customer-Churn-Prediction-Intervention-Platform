@@ -1,11 +1,13 @@
-import pytest
+import contextlib
 import uuid
+from unittest.mock import AsyncMock, patch
+
+import pytest
 import sqlalchemy
-from sqlalchemy import select
-from unittest.mock import AsyncMock, patch, MagicMock
 from apps.api.models import Customer, CustomerEvent
 from apps.api.worker import process_webhook
-import contextlib
+from sqlalchemy import select
+
 
 @pytest.mark.asyncio
 async def test_webhook_ingestion_and_idempotency(db_session, client):

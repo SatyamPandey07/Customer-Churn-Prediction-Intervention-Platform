@@ -1,16 +1,25 @@
-import pytest
 import uuid
-from datetime import datetime, timezone, timedelta
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-import sqlalchemy
+from datetime import UTC, datetime, timedelta
 
-from apps.api.models import Campaign, Intervention, Customer, CustomerEvent, Role, User, InAppNotification, Tenant, PlanTier
-from apps.api.core.outreach.engine import evaluate_campaigns
-from apps.api.core.outreach.adapters import get_adapter, EmailAdapter, SmsAdapter, SlackAdapter, InAppAdapter
-
+import pytest
 import pytest_asyncio
+import sqlalchemy
+from apps.api.core.outreach.adapters import EmailAdapter, InAppAdapter, SlackAdapter, SmsAdapter, get_adapter
+from apps.api.core.outreach.engine import evaluate_campaigns
+from apps.api.models import (
+    Campaign,
+    Customer,
+    InAppNotification,
+    Intervention,
+    PlanTier,
+    Role,
+    Tenant,
+    User,
+)
+from httpx import AsyncClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 @pytest_asyncio.fixture()
 async def test_tenant(db_session: AsyncSession):
@@ -23,6 +32,7 @@ async def test_tenant(db_session: AsyncSession):
     return tenant
 
 from apps.api.core.security import create_access_token
+
 
 @pytest_asyncio.fixture()
 async def test_user_token(test_tenant, db_session: AsyncSession):
@@ -140,7 +150,7 @@ async def test_rule_engine_matching_and_cooldown(db_session: AsyncSession, sampl
     
     # Modify intervention to be 15 days old
     old_intervention = interventions[0]
-    old_intervention.sent_at = datetime.now(timezone.utc) - timedelta(days=15)
+    old_intervention.sent_at = datetime.now(UTC) - timedelta(days=15)
     await db_session.commit()
     
     # Run evaluation again - SHOULD create a new one

@@ -1,12 +1,12 @@
-from typing import Any, Dict
-from fastapi import APIRouter, Request, Depends, HTTPException, status
+from typing import Any
+
 from apps.api.core.queue import get_queue
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, status
 
 router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
 
 @router.post("/{tenant_id}/{source}", status_code=status.HTTP_202_ACCEPTED)
-async def receive_webhook(tenant_id: str, source: str, payload: Dict[str, Any]):
+async def receive_webhook(tenant_id: str, source: str, payload: dict[str, Any]):
     """
     Ingest webhook payload asynchronously.
     For this PR, we accept an arbitrary JSON payload and queue it for processing.

@@ -158,17 +158,39 @@ erDiagram
 - **Data & Caching**: PostgreSQL 16, Redis 7.
 - **Security & Infrastructure**: AES-GCM column encryption, PyJWT, Docker, Docker Compose, OpenTelemetry, Prometheus, Grafana.
 
-## Application Previews
+## Application Previews (3 Major Operating Scenarios)
 
-### Customer Churn Risk Dashboard
-Filter and inspect customers sorted by risk tier, monthly recurring revenue (MRR), and feature trend trajectories.
+### Scenario 1: Real-Time Churn Risk Telemetry & Monitoring
+*Real-time monitoring of customer churn probability, risk tier distribution, and MRR at risk.*
 
-![Dashboard Overview](docs/screenshots/dashboard.png)
+![Real-Time Churn Telemetry](docs/screenshots/dashboard_dark.png)
 
-### Campaign Builder & Outreach Rules
-Configure automated campaigns that trigger specific outreach channels when a customer meets risk score thresholds.
+- **Predictive Risk Scoring**: Ingests billing and product telemetry to score customer churn probability using an XGBoost classifier model.
+- **MRR at Risk Visibility**: Instantly aggregates total revenue exposed to risk across `Critical` (>75%) and `High` (50–75%) risk tiers for immediate executive visibility.
+- **Velocity Trend Telemetry**: Visualizes 30-day login and usage activity trends per account, streaming live score updates via a Node.js Socket.io WebSocket gateway.
 
-![Campaign Builder](docs/screenshots/campaigns.png)
+---
+
+### Scenario 2: SHAP Risk Inspection & Gemini AI Intervention Reasoning
+*Deep-dive risk driver attribution with SHAP explainability and Gemini AI-generated retention strategies.*
+
+![SHAP Inspection & Gemini AI Reasoning](docs/screenshots/dashboard.png)
+
+- **SHAP Feature Attribution**: Deconstructs complex risk scores into ranked, human-readable feature drivers (e.g., login frequency drop-offs, seat shrinkage, billing inquiry spikes).
+- **Gemini 2.5 AI Retention Strategy**: Generates customized, context-aware intervention strategies and email/message copy tailored to customer plan tier and tenure.
+- **1-Click Executive Outreach**: Provides immediate manual outreach override actions across Email, Slack, and In-App notification channels.
+
+---
+
+### Scenario 3: Automated Retention Campaign Builder & Multi-Channel Outreach
+*Rule-based campaign automation triggering multi-channel interventions when risk thresholds are met.*
+
+![Automated Retention Campaign Builder](docs/screenshots/campaigns.png)
+
+- **Automated Workflow Engine**: Configures rules that trigger when customers cross defined risk tier and MRR thresholds.
+- **Multi-Channel Channel Adapters**: Dispatches automated save offers via Email, Slack Webhooks, SMS, or In-App dialogs with built-in 24-hour cooldown debouncing.
+- **Outcome & ROI Tracking**: Tracks campaign delivery rates, saved revenue counterfactuals, and Wilson score interval retention percentages over time.
+
 
 ## Local Development & Setup
 

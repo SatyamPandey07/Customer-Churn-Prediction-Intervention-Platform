@@ -1,16 +1,16 @@
-import pytest
 import uuid
-import pandas as pd
-from unittest.mock import patch, MagicMock
-from datetime import datetime, timezone
-import os
-import sqlalchemy
+from datetime import UTC, datetime
+from unittest.mock import MagicMock, patch
 
-from apps.api.models import Customer, CustomerEvent, PlanTier, Tenant
+import pandas as pd
+import pytest
+import sqlalchemy
 from apps.api.core.ml.features import extract_features
-from apps.api.core.ml.predict import predict_churn
-from apps.api.core.ml.train import train_model, FEATURE_COLS
 from apps.api.core.ml.interventions import generate_intervention, sanitize_input
+from apps.api.core.ml.predict import predict_churn
+from apps.api.core.ml.train import FEATURE_COLS, train_model
+from apps.api.models import Customer, CustomerEvent, PlanTier, Tenant
+
 
 @pytest.fixture
 def mock_gemini():
@@ -34,7 +34,7 @@ async def test_shap_and_interventions(db_session, mock_gemini):
     
     await db_session.execute(sqlalchemy.text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
     
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     c_id = uuid.uuid4()
     c = Customer(
         id=c_id, tenant_id=tenant_id, external_ids={"stripe": f"cus_{c_id}"},
@@ -67,7 +67,7 @@ async def test_shap_and_interventions(db_session, mock_gemini):
     
     # 1. SHAP drivers
     feature_dict = df_features.iloc[0].drop("customer_id").to_dict()
-    proba, tier, version, drivers = predict_churn(feature_dict)
+    proba, tier, _version, drivers = predict_churn(feature_dict)
     
     assert len(drivers) == 3
     assert "human_readable" in drivers[0]

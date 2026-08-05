@@ -1,5 +1,6 @@
-import os
 import json
+import os
+
 from arq import create_pool
 from arq.connections import RedisSettings
 

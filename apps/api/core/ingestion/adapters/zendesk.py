@@ -1,14 +1,16 @@
 import datetime
-from typing import Dict, Any, List
+from typing import Any
+
 from ..base import SourceAdapter
 from ..schema import CustomerEventSchema
+
 
 class ZendeskAdapter(SourceAdapter):
     @property
     def source_name(self) -> str:
         return "zendesk"
 
-    def normalize_payload(self, payload: Dict[str, Any]) -> List[CustomerEventSchema]:
+    def normalize_payload(self, payload: dict[str, Any]) -> list[CustomerEventSchema]:
         ticket_id = str(payload.get("ticket_id") or payload.get("id") or "")
         customer_id = str(payload.get("customer_id") or payload.get("requester_id") or "")
         if not ticket_id or not customer_id:
@@ -17,11 +19,11 @@ class ZendeskAdapter(SourceAdapter):
         ts_str = payload.get("created_at") or payload.get("timestamp")
         if ts_str:
             try:
-                occurred_at = datetime.datetime.fromisoformat(str(ts_str).replace("Z", "+00:00"))
+                occurred_at = datetime.datetime.fromisoformat(str(ts_str))
             except Exception:
-                occurred_at = datetime.datetime.now(datetime.timezone.utc)
+                occurred_at = datetime.datetime.now(datetime.UTC)
         else:
-            occurred_at = datetime.datetime.now(datetime.timezone.utc)
+            occurred_at = datetime.datetime.now(datetime.UTC)
 
         subject = payload.get("subject", "")
         comment = payload.get("comment") or payload.get("description") or ""

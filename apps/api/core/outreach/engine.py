@@ -1,12 +1,13 @@
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
-from sqlalchemy import select, and_
-from sqlalchemy.ext.asyncio import AsyncSession
-from apps.api.models import Campaign, Intervention, Customer, ChurnFeature
-from apps.api.core.outreach.adapters import get_adapter
+from datetime import UTC, datetime, timedelta
+
 from apps.api.core.ml.interventions import generate_intervention
 from apps.api.core.ml.predict import predict_churn
+from apps.api.core.outreach.adapters import get_adapter
+from apps.api.models import Campaign, ChurnFeature, Customer, Intervention
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ async def _evaluate_single_campaign(db: AsyncSession, tenant_id: uuid.UUID, camp
     customers = result.scalars().all()
 
     cooldown_days = 14
-    cutoff_date = datetime.now(timezone.utc) - timedelta(days=cooldown_days)
+    cutoff_date = datetime.now(UTC) - timedelta(days=cooldown_days)
 
     for customer in customers:
         # Check cooldown
@@ -133,7 +134,7 @@ async def _evaluate_single_campaign(db: AsyncSession, tenant_id: uuid.UUID, camp
         try:
             success = await adapter.send(db, customer, message)
             intervention.status = "sent" if success else "failed"
-            intervention.sent_at = datetime.now(timezone.utc)
+            intervention.sent_at = datetime.now(UTC)
         except Exception as e:
             logger.error(f"Failed to send intervention via {campaign.channel}: {e}")
             intervention.status = "failed"

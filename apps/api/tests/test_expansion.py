@@ -1,13 +1,13 @@
-import pytest
 import uuid
-import pandas as pd
-import numpy as np
-import sqlalchemy
-from datetime import datetime, timezone
 
-from apps.api.models import Tenant, User, Customer, Role, PlanTier
-from apps.api.core.ml.expansion import train_expansion_model, predict_expansion
+import numpy as np
+import pandas as pd
+import pytest
+import sqlalchemy
+from apps.api.core.ml.expansion import predict_expansion, train_expansion_model
 from apps.api.core.security import create_access_token
+from apps.api.models import Customer, PlanTier, Role, Tenant, User
+
 
 @pytest.mark.asyncio
 async def test_expansion_model_auc_roc_and_endpoint(client, db_session):
