@@ -405,9 +405,9 @@ class ExitSurvey(Base):
     reason_category = Column(String, nullable=False)  # price, missing_features, poor_support, usability, competitor, other
     free_text = Column(String, nullable=True)
     submitted_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
-
     tenant = relationship("Tenant")
     customer = relationship("Customer")
+
 
 class Contract(Base):
     __tablename__ = "contracts"
@@ -419,10 +419,68 @@ class Contract(Base):
     renewal_date = Column(DateTime(timezone=True), nullable=False)
     auto_renew = Column(Boolean, nullable=False, default=True)
     contract_value_mrr = Column(Float, nullable=False, default=0.0)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     tenant = relationship("Tenant")
     customer = relationship("Customer")
+
+
+class ApiKey(Base):
+    """Tenant-scoped API keys for public/external embedding. Keys are hashed at rest."""
+    __tablename__ = "api_keys"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    name = Column(String, nullable=False)  # human label e.g. "Prod SDK key"
+    hashed_key = Column(String, nullable=False, unique=True)
+    key_prefix = Column(String, nullable=False)  # first 8 chars for display e.g. "cgk_a1b2"
+    scope = Column(String, nullable=False, default="read")  # "read" or "read_write"
+    is_active = Column(Boolean, nullable=False, default=True)
+    last_used_at = Column(DateTime(timezone=True), nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    revoked_at = Column(DateTime(timezone=True), nullable=True)
+
+    tenant = relationship("Tenant")
+    creator = relationship("User")
+
+    __table_args__ = (
+        UniqueConstraint('tenant_id', 'name', name='uq_tenant_apikey_name'),
+    )
+
+
+class CrmSyncLog(Base):
+    """Tracks outbound CRM sync events (Salesforce / HubSpot)."""
+    __tablename__ = "crm_sync_logs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
+    crm_type = Column(String, nullable=False)  # "salesforce" | "hubspot"
+    status = Column(String, nullable=False, default="pending")  # pending | success | failed
+    fields_pushed = Column(JSONB, nullable=False, default=dict)
+    error_message = Column(String, nullable=True)
+    synced_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+
+    tenant = relationship("Tenant")
+    customer = relationship("Customer")
+
+
+class ModelFairnessReport(Base):
+    """Per-segment model calibration / error-rate parity report."""
+    __tablename__ = "model_fairness_reports"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    dimension = Column(String, nullable=False)    # plan_tier, industry, company_size_band
+    generated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    segments = Column(JSONB, nullable=False, default=list)  # per-segment calibration metrics
+    flagged_segments = Column(JSONB, nullable=False, default=list)  # segments with parity violations
+    methodology = Column(String, nullable=False, default="")
+
+    tenant = relationship("Tenant")
+
 
 
 
