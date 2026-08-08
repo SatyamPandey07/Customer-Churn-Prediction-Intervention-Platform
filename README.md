@@ -2,6 +2,13 @@
 
 A multi-tenant SaaS platform built to predict customer churn risks and automate retention interventions before subscription cancellation occurs. The system ingests billing and usage telemetry, computes predictive risk scores with XGBoost, generates natural language explanations using Google Gemini, and executes targeted outreach across multiple messaging channels.
 
+🚀 **Live Demo Application**: [https://thechurnguard.netlify.app/login/](https://thechurnguard.netlify.app/login/)
+
+📄 **Product Requirements Document (PRD)**: [View Complete PRD Preview](docs/PRD.pdf)
+> The Product Requirements Document (PRD) outlines the core architecture, functional requirements, and success metrics for ChurnGuard AI. It details the platform's ability to ingest billing telemetry, explain churn risk using SHAP, and automate multi-channel interventions via Gemini. Dive into the complete PDF preview above to explore user personas, the XGBoost predictive pipeline, and our reporting logic for tracking saved revenue.
+
+---
+
 ## System Architecture
 
 The platform follows a modular microservices architecture, separating event ingestion, feature computation, machine learning inference, and campaign execution.
