@@ -1,11 +1,11 @@
-import uuid
 import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timezone, timedelta
-from sqlalchemy import select, and_
-from sqlalchemy.ext.asyncio import AsyncSession
+import uuid
+from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from apps.api.models import Contract, Customer
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ async def get_renewals_at_risk(
     db: AsyncSession,
     tenant_id: uuid.UUID,
     window_days: int = 90
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Returns upcoming contract renewals within window_days, joining renewal timing
     with current customer churn risk probability and health score for CS prioritization.
@@ -55,7 +55,7 @@ async def get_renewals_at_risk(
         if ren_date.tzinfo is None:
             ren_date = ren_date.replace(tzinfo=timezone.utc)
 
-        days_until_renewal = max(0, int(round((ren_date - now).total_seconds() / 86400.0)))
+        days_until_renewal = max(0, round((ren_date - now).total_seconds() / 86400.0))
 
         churn_prob = float(c.churn_probability or 0.0)
         health = float(c.health_score) if c.health_score is not None else 50.0
@@ -102,7 +102,7 @@ async def create_or_update_contract(
     renewal_date: datetime,
     contract_term_months: int = 12,
     auto_renew: bool = True,
-    contract_value_mrr: Optional[float] = None
+    contract_value_mrr: float | None = None
 ) -> Contract:
     """
     Upserts a contract record for a customer.

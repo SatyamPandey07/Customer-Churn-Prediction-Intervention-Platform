@@ -1,10 +1,10 @@
-import uuid
 import logging
-from typing import Dict, Any, List
-from sqlalchemy import select, and_
-from sqlalchemy.ext.asyncio import AsyncSession
+import uuid
+from typing import Any
 
-from apps.api.models import Customer, HealthScore
+from apps.api.models import Customer
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ async def get_cohort_breakdown(
     db: AsyncSession,
     tenant_id: uuid.UUID,
     dimension: str = "plan_tier"
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Computes cohort/segment breakdown metrics across 4 dimensions:
     - plan_tier (or plan)
@@ -26,7 +26,7 @@ async def get_cohort_breakdown(
     res = await db.execute(select(Customer).where(Customer.tenant_id == tenant_id))
     customers = res.scalars().all()
 
-    groups: Dict[str, List[Customer]] = {}
+    groups: dict[str, list[Customer]] = {}
 
     for c in customers:
         if dimension in ["plan_tier", "plan"]:
