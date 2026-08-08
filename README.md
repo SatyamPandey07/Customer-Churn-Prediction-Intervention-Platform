@@ -2,6 +2,10 @@
 
 A multi-tenant SaaS platform built to predict customer churn risks and automate retention interventions before subscription cancellation occurs. The system ingests billing and usage telemetry, computes predictive risk scores with XGBoost, generates natural language explanations using Google Gemini, and executes targeted outreach across multiple messaging channels.
 
+🚀 **Live Demo Application**: [https://thechurnguard.netlify.app/login/](https://thechurnguard.netlify.app/login/)
+
+---
+
 ## System Architecture
 
 The platform follows a modular microservices architecture, separating event ingestion, feature computation, machine learning inference, and campaign execution.

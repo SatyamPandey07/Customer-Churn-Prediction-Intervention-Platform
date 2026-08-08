@@ -1,5 +1,5 @@
 import math
-from typing import Any
+from typing import Any, Optional
 
 from apps.api.core.deps import get_db, require_role
 from apps.api.models import Campaign, Intervention, InterventionOutcome, RoiReport, Role
