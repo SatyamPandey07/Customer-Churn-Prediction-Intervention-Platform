@@ -4,7 +4,7 @@ A multi-tenant SaaS platform built to predict customer churn risks and automate 
 
 🚀 **Live Demo Application**: [https://thechurnguard.netlify.app/login/](https://thechurnguard.netlify.app/login/)
 
-📄 **Product Requirements Document**: [PRD Document](docs/PRD.pdf)
+📄 **Product Requirements Document**: [PRD Document](docs/PRD.md)
 > The Product Requirements Document (PRD) outlines the core architecture, functional requirements, and success metrics for ChurnGuard AI. It details the platform's ability to ingest billing telemetry, explain churn risk using SHAP, and automate multi-channel interventions via Gemini. Dive into the complete PDF preview above to explore user personas, the XGBoost predictive pipeline, and our reporting logic for tracking saved revenue.
 
 ---
