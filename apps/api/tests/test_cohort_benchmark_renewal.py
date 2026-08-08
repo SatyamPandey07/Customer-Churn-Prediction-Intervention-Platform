@@ -1,13 +1,14 @@
-import pytest
 import uuid
+from datetime import datetime, timedelta, timezone
+
+import pytest
 import sqlalchemy
-from datetime import datetime, timezone, timedelta
+from apps.api.core.analytics.benchmarks import get_industry_benchmark
+from apps.api.core.analytics.cohorts import get_cohort_breakdown
+from apps.api.core.analytics.renewals import create_or_update_contract, get_renewals_at_risk
+from apps.api.models import Customer, PlanTier, Tenant
 from fastapi import HTTPException
 
-from apps.api.models import Tenant, Customer, Contract, PlanTier
-from apps.api.core.analytics.cohorts import get_cohort_breakdown
-from apps.api.core.analytics.benchmarks import get_industry_benchmark
-from apps.api.core.analytics.renewals import get_renewals_at_risk, create_or_update_contract
 
 @pytest.mark.asyncio
 async def test_cohort_breakdown_math_all_dimensions(db_session):
@@ -167,9 +168,9 @@ async def test_renewals_at_risk_join_and_prioritization(db_session):
     await db_session.commit()
 
     # Create Contracts
-    cnt1 = await create_or_update_contract(db_session, tenant_id, c1.id, renewal_date=now + timedelta(days=20), contract_term_months=12, auto_renew=True, contract_value_mrr=5000.0)
-    cnt2 = await create_or_update_contract(db_session, tenant_id, c2.id, renewal_date=now + timedelta(days=40), contract_term_months=12, auto_renew=False, contract_value_mrr=500.0)
-    cnt3 = await create_or_update_contract(db_session, tenant_id, c3.id, renewal_date=now + timedelta(days=150), contract_term_months=12, auto_renew=True, contract_value_mrr=2000.0)
+    await create_or_update_contract(db_session, tenant_id, c1.id, renewal_date=now + timedelta(days=20), contract_term_months=12, auto_renew=True, contract_value_mrr=5000.0)
+    await create_or_update_contract(db_session, tenant_id, c2.id, renewal_date=now + timedelta(days=40), contract_term_months=12, auto_renew=False, contract_value_mrr=500.0)
+    await create_or_update_contract(db_session, tenant_id, c3.id, renewal_date=now + timedelta(days=150), contract_term_months=12, auto_renew=True, contract_value_mrr=2000.0)
 
     # Query 90-day renewals at risk
     report = await get_renewals_at_risk(db_session, tenant_id, window_days=90)

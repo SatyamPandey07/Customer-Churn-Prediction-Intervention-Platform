@@ -1,15 +1,21 @@
 import logging
 import os
+
 import sentry_sdk
-from pythonjsonlogger import jsonlogger
 from opentelemetry import trace
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from prometheus_client import make_asgi_app
+
+try:
+    from pythonjsonlogger.json import JsonFormatter
+except ImportError:
+    from pythonjsonlogger.jsonlogger import JsonFormatter
+
 
 class TraceInjectingFilter(logging.Filter):
     def filter(self, record):
@@ -33,7 +39,7 @@ def setup_observability(app=None, engine=None):
         logger.removeHandler(handler)
         
     handler = logging.StreamHandler()
-    formatter = jsonlogger.JsonFormatter(
+    formatter = JsonFormatter(
         '%(asctime)s %(levelname)s %(name)s %(message)s %(trace_id)s %(span_id)s'
     )
     handler.setFormatter(formatter)
@@ -53,9 +59,11 @@ def setup_observability(app=None, engine=None):
     resource = Resource.create({"service.name": "churn-api"})
     provider = TracerProvider(resource=resource)
     
-    otlp_endpoint = os.environ.get("OTLP_ENDPOINT", "http://otel-collector:4317")
-    processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True))
-    provider.add_span_processor(processor)
+    if os.environ.get("TESTING", "false").lower() != "true" and os.environ.get("DISABLE_OTEL", "false").lower() != "true":
+        otlp_endpoint = os.environ.get("OTLP_ENDPOINT", "http://otel-collector:4317")
+        processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True))
+        provider.add_span_processor(processor)
+    
     trace.set_tracer_provider(provider)
 
     # Instrument FastAPI

@@ -1,12 +1,12 @@
-import uuid
 import logging
 import statistics
-from typing import Dict, Any, List, Optional
-from fastapi import HTTPException
-from sqlalchemy import select, and_
-from sqlalchemy.ext.asyncio import AsyncSession
+import uuid
+from typing import Any
 
-from apps.api.models import Tenant, Customer
+from apps.api.models import Customer, Tenant
+from fastapi import HTTPException
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ async def get_industry_benchmark(
     db: AsyncSession,
     tenant_id: uuid.UUID,
     segment: str = "fintech"
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Computes anonymized industry benchmark metrics for opted-in tenants.
     Enforces opt-in verification and minimum cohort size guards.
@@ -91,12 +91,12 @@ async def get_industry_benchmark(
     req_avg_health = round(sum(req_health_list) / len(req_health_list), 2) if req_health_list else 50.0
 
     # 5. Compute tenant-level aggregated churn rates across opted-in tenants
-    tenant_churn_rates: List[float] = []
-    tenant_cust_map: Dict[uuid.UUID, List[Customer]] = {}
+    tenant_churn_rates: list[float] = []
+    tenant_cust_map: dict[uuid.UUID, list[Customer]] = {}
     for c in matching_custs:
         tenant_cust_map.setdefault(c.tenant_id, []).append(c)
 
-    for tid, t_custs in tenant_cust_map.items():
+    for t_custs in tenant_cust_map.values():
         high_cnt = sum(1 for c in t_custs if float(c.churn_probability or 0.0) >= 0.5 or c.churn_risk_tier == "critical")
         rate = round((high_cnt / len(t_custs)) * 100.0, 2)
         tenant_churn_rates.append(rate)
