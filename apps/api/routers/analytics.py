@@ -1,5 +1,5 @@
 import math
-from typing import Any, Optional
+from typing import Any
 
 from apps.api.core.deps import get_db, require_role
 from apps.api.models import Campaign, Intervention, InterventionOutcome, RoiReport, Role
@@ -125,7 +125,7 @@ class RevenueAtRiskAlertConfigSchema(BaseModel):
     channel: str = "slack"
     enabled: bool = True
 
-@router.get("/tenants/{tenant_id}/analytics/revenue-at-risk")
+@router.get("/{tenant_id}/revenue-at-risk")
 async def get_revenue_at_risk(
     tenant_id: uuid.UUID,
     horizon_days: int = Query(90, enum=[30, 60, 90]),
@@ -139,7 +139,7 @@ async def get_revenue_at_risk(
     metrics = await calculate_tenant_revenue_at_risk(db, tenant_id, horizon_days=horizon_days)
     return metrics
 
-@router.get("/tenants/{tenant_id}/analytics/revenue-at-risk-snapshots")
+@router.get("/{tenant_id}/revenue-at-risk-snapshots")
 async def get_revenue_at_risk_snapshots(
     tenant_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -168,7 +168,7 @@ async def get_revenue_at_risk_snapshots(
         for s in snapshots
     ]
 
-@router.get("/tenants/{tenant_id}/analytics/revenue-at-risk-config", response_model=RevenueAtRiskAlertConfigSchema)
+@router.get("/{tenant_id}/revenue-at-risk-config", response_model=RevenueAtRiskAlertConfigSchema)
 async def get_revenue_at_risk_config(
     tenant_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -188,7 +188,7 @@ async def get_revenue_at_risk_config(
         enabled=config.enabled
     )
 
-@router.put("/tenants/{tenant_id}/analytics/revenue-at-risk-config", response_model=RevenueAtRiskAlertConfigSchema)
+@router.put("/{tenant_id}/revenue-at-risk-config", response_model=RevenueAtRiskAlertConfigSchema)
 async def update_revenue_at_risk_config(
     tenant_id: uuid.UUID,
     payload: RevenueAtRiskAlertConfigSchema,
@@ -227,7 +227,7 @@ class SubmitExitSurveyPayload(BaseModel):
     reason_category: str  # price, missing_features, poor_support, usability, competitor, other
     free_text: str | None = None
 
-@router.get("/tenants/{tenant_id}/analytics/attribution")
+@router.get("/{tenant_id}/attribution")
 async def get_attribution_report(
     tenant_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -240,7 +240,7 @@ async def get_attribution_report(
     report = await get_tenant_attribution_report(db, tenant_id)
     return report
 
-@router.get("/tenants/{tenant_id}/analytics/explanation-validation")
+@router.get("/{tenant_id}/explanation-validation")
 async def get_explanation_validation_report_endpoint(
     tenant_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -253,7 +253,7 @@ async def get_explanation_validation_report_endpoint(
     report = await get_explanation_validation_report(db, tenant_id)
     return report
 
-@router.post("/tenants/{tenant_id}/customers/{customer_id}/exit-surveys")
+@router.post("/{tenant_id}/customers/{customer_id}/exit-surveys")
 async def record_exit_survey(
     tenant_id: uuid.UUID,
     customer_id: uuid.UUID,
@@ -268,17 +268,18 @@ async def record_exit_survey(
         "submitted_at": survey.submitted_at.isoformat() if hasattr(survey.submitted_at, "isoformat") else str(survey.submitted_at)
     }
 
-from apps.api.core.analytics.cohorts import get_cohort_breakdown
 from apps.api.core.analytics.benchmarks import get_industry_benchmark
-from apps.api.core.analytics.renewals import get_renewals_at_risk, create_or_update_contract
+from apps.api.core.analytics.cohorts import get_cohort_breakdown
+from apps.api.core.analytics.renewals import create_or_update_contract, get_renewals_at_risk
+
 
 class CreateContractPayload(BaseModel):
     renewal_date: datetime
     contract_term_months: int = 12
     auto_renew: bool = True
-    contract_value_mrr: Optional[float] = None
+    contract_value_mrr: float | None = None
 
-@router.get("/tenants/{tenant_id}/analytics/cohorts")
+@router.get("/{tenant_id}/cohorts")
 async def get_cohorts_endpoint(
     tenant_id: uuid.UUID,
     dimension: str = Query("plan_tier", enum=["plan_tier", "signup_month", "industry", "channel"]),
@@ -292,7 +293,7 @@ async def get_cohorts_endpoint(
     cohorts = await get_cohort_breakdown(db, tenant_id, dimension)
     return {"tenant_id": str(tenant_id), "dimension": dimension, "cohorts": cohorts}
 
-@router.get("/tenants/{tenant_id}/analytics/benchmark")
+@router.get("/{tenant_id}/benchmark")
 async def get_benchmark_endpoint(
     tenant_id: uuid.UUID,
     segment: str = Query("fintech"),
@@ -306,7 +307,7 @@ async def get_benchmark_endpoint(
     benchmark = await get_industry_benchmark(db, tenant_id, segment)
     return benchmark
 
-@router.get("/tenants/{tenant_id}/analytics/renewals-at-risk")
+@router.get("/{tenant_id}/renewals-at-risk")
 async def get_renewals_at_risk_endpoint(
     tenant_id: uuid.UUID,
     window_days: int = Query(90, ge=1, le=365),
@@ -320,7 +321,7 @@ async def get_renewals_at_risk_endpoint(
     renewals = await get_renewals_at_risk(db, tenant_id, window_days)
     return renewals
 
-@router.post("/tenants/{tenant_id}/customers/{customer_id}/contract")
+@router.post("/{tenant_id}/customers/{customer_id}/contract")
 async def upsert_contract_endpoint(
     tenant_id: uuid.UUID,
     customer_id: uuid.UUID,

@@ -4,6 +4,9 @@ A multi-tenant SaaS platform built to predict customer churn risks and automate 
 
 🚀 **Live Demo Application**: [https://thechurnguard.netlify.app/login/](https://thechurnguard.netlify.app/login/)
 
+📄 **Product Requirements Document**: [PRD Document](docs/PRD.md)
+> The Product Requirements Document (PRD) outlines the core architecture, functional requirements, and success metrics for ChurnGuard AI. It details the platform's ability to ingest billing telemetry, explain churn risk using SHAP, and automate multi-channel interventions via Gemini. Dive into the complete PDF preview above to explore user personas, the XGBoost predictive pipeline, and our reporting logic for tracking saved revenue.
+
 ---
 
 ## System Architecture
@@ -167,7 +170,7 @@ erDiagram
 ### Scenario 1: Real-Time Churn Risk Telemetry & Monitoring
 *Real-time monitoring of customer churn probability, risk tier distribution, and MRR at risk.*
 
-![Real-Time Churn Telemetry](docs/screenshots/dashboard_dark.png)
+![Real-Time Churn Telemetry](https://i.postimg.cc/sDQNP5NW/dashboard-dark.png)
 
 - **Predictive Risk Scoring**: Ingests billing and product telemetry to score customer churn probability using an XGBoost classifier model.
 - **MRR at Risk Visibility**: Instantly aggregates total revenue exposed to risk across `Critical` (>75%) and `High` (50–75%) risk tiers for immediate executive visibility.

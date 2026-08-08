@@ -34,10 +34,12 @@ async def manual_override(
     db: AsyncSession = Depends(get_db),
     user: dict = Depends(require_role([Role.owner, Role.admin, Role.analyst]))
 ):
+    tenant_id_uuid = uuid.UUID(str(user["tenant_id"]))
+    
     # Verify customer belongs to tenant
     result = await db.execute(
         select(Customer).where(
-            and_(Customer.id == customer_id, Customer.tenant_id == user["tenant_id"])
+            and_(Customer.id == customer_id, Customer.tenant_id == tenant_id_uuid)
         )
     )
     customer = result.scalars().first()
@@ -48,7 +50,7 @@ async def manual_override(
     
     intervention = Intervention(
         id=uuid.uuid4(),
-        tenant_id=user["tenant_id"],
+        tenant_id=tenant_id_uuid,
         customer_id=customer.id,
         channel=req.channel,
         status="pending",
@@ -67,8 +69,8 @@ async def manual_override(
     # Audit log
     audit_log = AuditLog(
         id=uuid.uuid4(),
-        tenant_id=user["tenant_id"],
-        actor_user_id=user["user_id"],
+        tenant_id=tenant_id_uuid,
+        actor_user_id=user.get("user_id") or user.get("sub"),
         action="manual_intervention",
         resource=f"customer:{customer.id}"
     )
