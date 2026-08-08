@@ -170,7 +170,7 @@ erDiagram
 ### Scenario 1: Real-Time Churn Risk Telemetry & Monitoring
 *Real-time monitoring of customer churn probability, risk tier distribution, and MRR at risk.*
 
-![Real-Time Churn Telemetry](docs/screenshots/dashboard_dark.png)
+![Real-Time Churn Telemetry](https://i.postimg.cc/sDQNP5NW/dashboard-dark.png)
 
 - **Predictive Risk Scoring**: Ingests billing and product telemetry to score customer churn probability using an XGBoost classifier model.
 - **MRR at Risk Visibility**: Instantly aggregates total revenue exposed to risk across `Critical` (>75%) and `High` (50–75%) risk tiers for immediate executive visibility.
