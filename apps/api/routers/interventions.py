@@ -1,14 +1,13 @@
 import uuid
-from typing import Optional, List
-from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, ConfigDict
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from datetime import UTC, datetime
 
 from apps.api.core.deps import get_db, require_role
-from apps.api.models import Customer, Intervention, Role, User, AuditLog
 from apps.api.core.outreach.adapters import get_adapter
+from apps.api.models import AuditLog, Customer, Intervention, Role
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/customers/{customer_id}/interventions", tags=["interventions"])
 
@@ -20,10 +19,10 @@ class InterventionResponse(BaseModel):
     id: uuid.UUID
     tenant_id: uuid.UUID
     customer_id: uuid.UUID
-    campaign_id: Optional[uuid.UUID]
+    campaign_id: uuid.UUID | None
     channel: str
     status: str
-    sent_at: Optional[datetime]
+    sent_at: datetime | None
     manual_override: bool
     
     model_config = ConfigDict(from_attributes=True)
@@ -35,10 +34,12 @@ async def manual_override(
     db: AsyncSession = Depends(get_db),
     user: dict = Depends(require_role([Role.owner, Role.admin, Role.analyst]))
 ):
+    tenant_id_uuid = uuid.UUID(str(user["tenant_id"]))
+    
     # Verify customer belongs to tenant
     result = await db.execute(
         select(Customer).where(
-            and_(Customer.id == customer_id, Customer.tenant_id == user["tenant_id"])
+            and_(Customer.id == customer_id, Customer.tenant_id == tenant_id_uuid)
         )
     )
     customer = result.scalars().first()
@@ -49,7 +50,7 @@ async def manual_override(
     
     intervention = Intervention(
         id=uuid.uuid4(),
-        tenant_id=user["tenant_id"],
+        tenant_id=tenant_id_uuid,
         customer_id=customer.id,
         channel=req.channel,
         status="pending",
@@ -61,15 +62,15 @@ async def manual_override(
     try:
         success = await adapter.send(db, customer, req.message)
         intervention.status = "sent" if success else "failed"
-        intervention.sent_at = datetime.now(timezone.utc)
+        intervention.sent_at = datetime.now(UTC)
     except Exception:
         intervention.status = "failed"
         
     # Audit log
     audit_log = AuditLog(
         id=uuid.uuid4(),
-        tenant_id=user["tenant_id"],
-        actor_user_id=user["user_id"],
+        tenant_id=tenant_id_uuid,
+        actor_user_id=user.get("user_id") or user.get("sub"),
         action="manual_intervention",
         resource=f"customer:{customer.id}"
     )
@@ -81,7 +82,7 @@ async def manual_override(
     
     return intervention
 
-@router.get("", response_model=List[InterventionResponse])
+@router.get("", response_model=list[InterventionResponse])
 async def get_interventions(
     customer_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
