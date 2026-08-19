@@ -53,7 +53,7 @@ export default function CustomerDetailPage() {
           <p className="text-xs text-slate-400">First seen: {new Date(customer.first_seen_at).toLocaleDateString()} • Last activity: {new Date(customer.last_seen_at).toLocaleString()}</p>
         </div>
 
-        <div className="flex items-center space-x-6 text-right">
+        <div className="flex items-center space-6 text-right">
           <div>
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Monthly Revenue</div>
             <div className="text-xl font-extrabold text-white">${customer.mrr.toFixed(2)}</div>

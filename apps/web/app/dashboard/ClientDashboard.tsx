@@ -360,9 +360,9 @@ export default function ClientDashboard({ initialCustomers }: { initialCustomers
                 <Sparkles className="w-4 h-4 text-blue-500" />
                 <span>Gemini Recommended Strategy</span>
               </div>
-              <div className="text-xs font-bold text-slate-900 dark:text-white">Proactive Check-In</div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white">{explanation?.intervention_recommendation?.strategy || "Proactive Check-In"}</div>
               <p className="text-xs text-slate-800 dark:text-slate-300 italic bg-white dark:bg-slate-950/60 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/80">
-                &quot;Recommend scheduling a 15-minute sync with their admin.&quot;
+                &quot;{explanation?.intervention_recommendation?.copy || "Recommend scheduling a 15-minute sync with their admin."}&quot;
               </p>
             </div>
 
