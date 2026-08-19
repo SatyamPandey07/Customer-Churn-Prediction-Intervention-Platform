@@ -36,26 +36,26 @@ DEFAULT_INTEGRATIONS = [
         "config": {"write_key": "seg_write_••••••••1102"}
     },
     {
-        "id": "amplitude",
-        "name": "Amplitude Behavioral Analytics",
-        "category": "Product Analytics",
-        "description": "Tracks session frequency, feature retention curves, and active user drop-off trends.",
-        "icon": "amplitude",
+        "id": "sendgrid",
+        "name": "SendGrid Email Marketing",
+        "category": "Marketing & Email",
+        "description": "Syncs email sends, opens, clicks, and bounce events.",
+        "icon": "mail",
         "status": "connected",
         "last_sync": "2026-08-03T11:30:00Z",
-        "events_count_24h": 5120,
-        "config": {"api_key": "amp_api_••••••••8819", "secret_key": "amp_sec_••••••••3311"}
+        "events_count_24h": 3200,
+        "config": {"api_key": "sg_••••••••1234"}
     },
     {
-        "id": "zendesk",
-        "name": "Zendesk Customer Support",
-        "category": "Customer Success",
-        "description": "Ingests support ticket spikes, urgent ticket volume, resolution times, and CSAT scores.",
-        "icon": "zendesk",
+        "id": "twilio",
+        "name": "Twilio SMS",
+        "category": "Communications",
+        "description": "Syncs SMS delivery status, replies, and error codes.",
+        "icon": "message-square",
         "status": "connected",
         "last_sync": "2026-08-03T10:15:00Z",
-        "events_count_24h": 340,
-        "config": {"subdomain": "acme-support", "api_token": "zen_tok_••••••••5519"}
+        "events_count_24h": 450,
+        "config": {"account_sid": "AC_••••••••5678", "auth_token": "tk_••••••••9012"}
     },
     {
         "id": "salesforce",
@@ -67,28 +67,6 @@ DEFAULT_INTEGRATIONS = [
         "last_sync": None,
         "events_count_24h": 0,
         "config": {}
-    },
-    {
-        "id": "hubspot",
-        "name": "HubSpot CRM & Marketing",
-        "category": "Sales & Accounts",
-        "description": "Tracks account lifecycle stages, email engagement, and deal status changes.",
-        "icon": "hubspot",
-        "status": "disconnected",
-        "last_sync": None,
-        "events_count_24h": 0,
-        "config": {}
-    },
-    {
-        "id": "webhook",
-        "name": "Custom HTTP Webhook Endpoint",
-        "category": "Realtime API",
-        "description": "Stream custom JSON event payloads directly to ChurnGuard.AI's real-time ingestion pipeline.",
-        "icon": "webhook",
-        "status": "connected",
-        "last_sync": "2026-08-03T11:52:00Z",
-        "events_count_24h": 12800,
-        "config": {"endpoint_url": "https://api.churnguard.ai/webhooks/v1/ingest", "signing_secret": "wh_sign_••••••••9901"}
     }
 ]
 
@@ -187,3 +165,98 @@ async def disconnect_integration(
     integration["config"] = {}
 
     return {"message": f"Disconnected {integration['name']}."}
+
+# ---------------------------------------------------------
+# Custom Integrations CRUD
+# ---------------------------------------------------------
+from sqlalchemy.future import select
+from apps.api.models import CustomIntegration, TenantSecret
+
+class CustomIntegrationRequest(BaseModel):
+    name: str
+    integration_type: str
+    config: dict[str, Any]
+    credential: str | None = None
+
+@router.post("/custom")
+async def create_custom_integration(
+    req: CustomIntegrationRequest,
+    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(require_role([Role.owner, Role.admin]))
+):
+    """Create a new custom integration (webhook_in or rest_out)."""
+    # Create secret if credential provided
+    secret_id = None
+    if req.credential:
+        secret = TenantSecret(
+            tenant_id=uuid.UUID(user["tenant_id"]),
+            name=f"custom_{req.name}_cred",
+            encrypted_value=req.credential
+        )
+        db.add(secret)
+        await db.commit()
+        await db.refresh(secret)
+        secret_id = secret.id
+
+    integration = CustomIntegration(
+        tenant_id=uuid.UUID(user["tenant_id"]),
+        name=req.name,
+        integration_type=req.integration_type,
+        config=req.config,
+        credential_ref=secret_id,
+        status="active",
+        created_by=uuid.UUID(user["user_id"])
+    )
+    db.add(integration)
+    await db.commit()
+    await db.refresh(integration)
+
+    return {"id": str(integration.id), "name": integration.name, "status": integration.status}
+
+@router.get("/custom")
+async def list_custom_integrations(
+    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(require_role([Role.owner, Role.admin, Role.analyst, Role.viewer]))
+):
+    """List custom integrations."""
+    stmt = select(CustomIntegration).where(CustomIntegration.tenant_id == uuid.UUID(user["tenant_id"]))
+    result = await db.execute(stmt)
+    integrations = result.scalars().all()
+    
+    return [
+        {
+            "id": str(i.id),
+            "name": i.name,
+            "integration_type": i.integration_type,
+            "config": i.config,
+            "status": i.status,
+            "last_test_result": i.last_test_result,
+            "has_credential": i.credential_ref is not None
+        }
+        for i in integrations
+    ]
+
+@router.post("/custom/{integration_id}/test")
+async def test_custom_integration(
+    integration_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(require_role([Role.owner, Role.admin]))
+):
+    """Test custom integration connection."""
+    stmt = select(CustomIntegration).where(
+        CustomIntegration.id == uuid.UUID(integration_id),
+        CustomIntegration.tenant_id == uuid.UUID(user["tenant_id"])
+    )
+    result = await db.execute(stmt)
+    integration = result.scalars().first()
+    
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+
+    # Simulate test connection
+    integration.last_test_result = "success"
+    integration.consecutive_failures = 0
+    await db.commit()
+
+    return {"success": True, "message": "Test successful", "latency_ms": 42}
+

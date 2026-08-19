@@ -111,7 +111,7 @@ export default function CustomerDetailPage() {
 
           <div className="pt-2 space-y-2">
             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Execute Outreach Override</div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 onClick={() => triggerOutreach('email')}
                 className="py-2 px-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all"

@@ -115,7 +115,7 @@ export default function ClientCampaigns({ initialCampaigns = [], userRole: initi
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1">Target Risk Tier</label>
                 <select
@@ -143,7 +143,7 @@ export default function ClientCampaigns({ initialCampaigns = [], userRole: initi
 
             <div>
               <label className="block text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1">Outreach Channel Adapter</label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
                   { id: 'email', label: 'Email', icon: Mail },
                   { id: 'slack', label: 'Slack Webhook', icon: Send },

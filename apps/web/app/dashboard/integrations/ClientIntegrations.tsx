@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { 
   Plug, CheckCircle2, RefreshCw, Zap, Shield, Key, ExternalLink, 
-  Settings, Copy, Check, Activity, AlertCircle, X, Server
+  Settings, Copy, Check, Activity, AlertCircle, X, Server, Plus
 } from 'lucide-react';
 import { MOCK_INTEGRATIONS, Integration } from '@/lib/demoData';
 
@@ -18,6 +18,45 @@ export default function ClientIntegrations({ initialIntegrations = [] }: { initi
   const [testResult, setTestResult] = useState<string | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
+
+  // Custom Integration Builder State
+  const [showBuilder, setShowBuilder] = useState(false);
+  const [customType, setCustomType] = useState<'webhook_in' | 'rest_out'>('webhook_in');
+  const [customName, setCustomName] = useState('');
+  const [customBaseUrl, setCustomBaseUrl] = useState('');
+  const [customAuth, setCustomAuth] = useState('none');
+  const [customCred, setCustomCred] = useState('');
+  const [samplePayload, setSamplePayload] = useState('{\n  "user_id": "123",\n  "event": "login"\n}');
+  const [mappingCustomer, setMappingCustomer] = useState('user_id');
+  const [mappingEvent, setMappingEvent] = useState('event');
+  const [customTestResult, setCustomTestResult] = useState<string | null>(null);
+
+  const handleTestCustom = async () => {
+    setTesting(true);
+    setTimeout(() => {
+      setCustomTestResult(customType === 'webhook_in' ? '✅ Payload parsed successfully into CustomerEvent!' : '✅ Connection test successful! Endpoint reachable.');
+      setTesting(false);
+    }, 800);
+  };
+
+  const handleSaveCustom = async () => {
+    const newIntegration: Integration = {
+        id: `custom_${Date.now()}`,
+        name: customName || 'Untitled Custom Integration',
+        category: customType === 'webhook_in' ? 'Custom Webhook' : 'Custom REST',
+        description: 'User defined custom integration.',
+        icon: 'zap',
+        status: 'connected',
+        last_sync: new Date().toISOString(),
+        events_count_24h: 0,
+        config: customType === 'webhook_in' 
+            ? { mapping_rules: { customer_id: mappingCustomer, event_type: mappingEvent } }
+            : { base_url: customBaseUrl, auth_type: customAuth }
+    };
+    setIntegrations(prev => [...prev, newIntegration]);
+    setShowBuilder(false);
+    setCustomTestResult(null);
+  };
 
   const handleTestConnection = async () => {
     if (!selectedIntegration) return;
@@ -100,6 +139,13 @@ export default function ClientIntegrations({ initialIntegrations = [] }: { initi
           <Activity className="w-4 h-4 text-blue-500 animate-pulse" />
           <span>{connectedCount} Active Connectors Syncing</span>
         </div>
+        <button
+          onClick={() => setShowBuilder(true)}
+          className="py-2 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-emerald-500/20 transition-all flex items-center space-x-1.5"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Build Custom Integration</span>
+        </button>
       </div>
 
       {/* Summary Metrics */}
@@ -290,6 +336,122 @@ export default function ClientIntegrations({ initialIntegrations = [] }: { initi
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Save Credentials & Connect</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Integration Builder Modal */}
+      {showBuilder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl relative transition-colors max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setShowBuilder(false)}
+              className="absolute top-4 right-4 p-1 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div>
+              <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">
+                Custom Integration Builder
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Connect a New System</h3>
+            </div>
+
+            {customTestResult && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-semibold">
+                {customTestResult}
+              </div>
+            )}
+
+            <div className="space-y-4 text-xs">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1">
+                  Integration Name
+                </label>
+                <input
+                  type="text"
+                  value={customName}
+                  onChange={e => setCustomName(e.target.value)}
+                  placeholder="e.g. Internal Billing Engine"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-200 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1">
+                  Integration Type
+                </label>
+                <div className="flex space-x-2">
+                  <button onClick={() => setCustomType('webhook_in')} className={`flex-1 py-2 rounded-xl font-semibold border ${customType === 'webhook_in' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-600' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500'}`}>Inbound Webhook</button>
+                  <button onClick={() => setCustomType('rest_out')} className={`flex-1 py-2 rounded-xl font-semibold border ${customType === 'rest_out' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-600' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500'}`}>Outbound REST</button>
+                </div>
+              </div>
+
+              {customType === 'webhook_in' ? (
+                <div className="space-y-4 border-t border-slate-200 dark:border-slate-800 pt-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1">Sample JSON Payload</label>
+                    <textarea 
+                      value={samplePayload} 
+                      onChange={e => setSamplePayload(e.target.value)}
+                      className="w-full h-24 font-mono text-[10px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-200 focus:outline-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1">Map Customer ID Field</label>
+                      <input type="text" value={mappingCustomer} onChange={e => setMappingCustomer(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-200 focus:outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1">Map Event Type Field</label>
+                      <input type="text" value={mappingEvent} onChange={e => setMappingEvent(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-200 focus:outline-none" />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4 border-t border-slate-200 dark:border-slate-800 pt-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1">Base URL</label>
+                    <input type="text" value={customBaseUrl} onChange={e => setCustomBaseUrl(e.target.value)} placeholder="https://api.example.com/v1" className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-200 focus:outline-none" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1">Auth Type</label>
+                      <select value={customAuth} onChange={e => setCustomAuth(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-200 focus:outline-none">
+                        <option value="none">None</option>
+                        <option value="api_key">API Key Header</option>
+                        <option value="bearer">Bearer Token</option>
+                        <option value="basic">Basic Auth</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1">Credential</label>
+                      <input type="password" value={customCred} onChange={e => setCustomCred(e.target.value)} placeholder="Secret value..." className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-200 focus:outline-none" />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center space-x-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                onClick={handleTestCustom}
+                disabled={testing}
+                className="py-2.5 px-4 bg-slate-100 dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 transition-all flex items-center justify-center space-x-1.5"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${testing ? 'animate-spin' : ''}`} />
+                <span>{customType === 'webhook_in' ? 'Test Payload' : 'Test Connection'}</span>
+              </button>
+
+              <button
+                onClick={handleSaveCustom}
+                className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center space-x-1.5"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Save Integration</span>
               </button>
             </div>
           </div>

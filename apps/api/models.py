@@ -45,6 +45,40 @@ class Tenant(Base):
 
     users = relationship("User", back_populates="tenant")
     audit_logs = relationship("AuditLog", back_populates="tenant")
+    branding = relationship("TenantBranding", back_populates="tenant", uselist=False, cascade="all, delete-orphan")
+    domains = relationship("TenantDomain", back_populates="tenant", cascade="all, delete-orphan")
+
+
+class TenantBranding(Base):
+    __tablename__ = "tenant_branding"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), unique=True, nullable=False)
+    logo_url = Column(String, nullable=True)
+    primary_color = Column(String, nullable=True)
+    secondary_color = Column(String, nullable=True)
+    favicon_url = Column(String, nullable=True)
+    product_display_name = Column(String, nullable=True, default="Churn Intervention Platform")
+    support_contact_email = Column(String, nullable=True)
+
+    tenant = relationship("Tenant", back_populates="branding")
+
+class DomainVerificationStatus(str, enum.Enum):
+    pending = "pending"
+    verified = "verified"
+    failed = "failed"
+
+class TenantDomain(Base):
+    __tablename__ = "tenant_domains"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    domain = Column(String, unique=True, nullable=False)
+    verification_status = Column(Enum(DomainVerificationStatus, name='domain_verification_status'), default=DomainVerificationStatus.pending, nullable=False)
+    verification_token = Column(String, nullable=False, default=lambda: str(uuid.uuid4()))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+
+    tenant = relationship("Tenant", back_populates="domains")
 
 
 class User(Base):
@@ -478,3 +512,59 @@ class ModelFairnessReport(Base):
     segments = Column(JSONB, nullable=False, default=list)  # per-segment calibration metrics
     flagged_segments = Column(JSONB, nullable=False, default=list)  # segments with parity violations
     tenant = relationship("Tenant")
+
+
+class TenantSecret(Base):
+    """Stores encrypted secrets/credentials for outbound integrations."""
+    __tablename__ = "tenant_secrets"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    name = Column(String, nullable=False)
+    encrypted_value = Column(StringEncryptedType(String, ENCRYPTION_KEY, AesGcmEngine, 'pkcs5'), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+
+    tenant = relationship("Tenant")
+
+
+class CustomIntegration(Base):
+    """Custom inbound webhooks or outbound REST integrations."""
+    __tablename__ = "custom_integrations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    name = Column(String, nullable=False)
+    integration_type = Column(String, nullable=False)  # "webhook_in" or "rest_out"
+    config = Column(JSONB, nullable=False, default=dict) # e.g. mapping rules, base URL, auth type
+    credential_ref = Column(UUID(as_uuid=True), ForeignKey("tenant_secrets.id"), nullable=True)
+    status = Column(String, nullable=False, default="draft")  # draft, active, error, paused
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    last_test_result = Column(String, nullable=True)
+    consecutive_failures = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+
+    tenant = relationship("Tenant")
+    creator = relationship("User")
+    secret = relationship("TenantSecret")
+
+class DashboardLayout(Base):
+    """Stores user-specific or tenant-default widget dashboard layouts."""
+    __tablename__ = "dashboard_layouts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    is_default = Column(Boolean, nullable=False, default=False)
+    layout = Column(JSONB, nullable=False, default=list) # List of { widget_id, config }
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+
+    tenant = relationship("Tenant")
+    user = relationship("User")
+
+    __table_args__ = (
+        UniqueConstraint('tenant_id', 'user_id', name='uq_tenant_user_layout'),
+    )
+

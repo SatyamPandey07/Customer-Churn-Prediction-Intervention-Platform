@@ -32,7 +32,7 @@ export type Integration = {
   status: 'connected' | 'disconnected' | 'error';
   last_sync: string | null;
   events_count_24h: number;
-  config: Record<string, string>;
+  config: Record<string, any>;
 };
 
 export const MOCK_CUSTOMERS: Customer[] = [
@@ -195,26 +195,26 @@ export const MOCK_INTEGRATIONS: Integration[] = [
     config: { write_key: 'seg_write_••••••••1102' }
   },
   {
-    id: 'amplitude',
-    name: 'Amplitude Behavioral Analytics',
-    category: 'Product Analytics',
-    description: 'Tracks session frequency, feature retention curves, and active user drop-off trends.',
-    icon: 'amplitude',
+    id: 'sendgrid',
+    name: 'SendGrid Email Marketing',
+    category: 'Marketing & Email',
+    description: 'Syncs email sends, opens, clicks, and bounce events.',
+    icon: 'mail',
     status: 'connected',
     last_sync: '2026-08-03T11:30:00Z',
-    events_count_24h: 5120,
-    config: { api_key: 'amp_api_••••••••8819', secret_key: 'amp_sec_••••••••3311' }
+    events_count_24h: 3200,
+    config: { api_key: 'sg_••••••••1234' }
   },
   {
-    id: 'zendesk',
-    name: 'Zendesk Customer Support',
-    category: 'Customer Success',
-    description: 'Ingests support ticket spikes, urgent ticket volume, resolution times, and CSAT scores.',
-    icon: 'zendesk',
+    id: 'twilio',
+    name: 'Twilio SMS',
+    category: 'Communications',
+    description: 'Syncs SMS delivery status, replies, and error codes.',
+    icon: 'message-square',
     status: 'connected',
     last_sync: '2026-08-03T10:15:00Z',
-    events_count_24h: 340,
-    config: { subdomain: 'acme-support', api_token: 'zen_tok_••••••••5519' }
+    events_count_24h: 450,
+    config: { account_sid: 'AC_••••••••5678', auth_token: 'tk_••••••••9012' }
   },
   {
     id: 'salesforce',
@@ -226,28 +226,6 @@ export const MOCK_INTEGRATIONS: Integration[] = [
     last_sync: null,
     events_count_24h: 0,
     config: {}
-  },
-  {
-    id: 'hubspot',
-    name: 'HubSpot CRM & Marketing',
-    category: 'Sales & Accounts',
-    description: 'Tracks account lifecycle stages, email engagement, and deal status changes.',
-    icon: 'hubspot',
-    status: 'disconnected',
-    last_sync: null,
-    events_count_24h: 0,
-    config: {}
-  },
-  {
-    id: 'webhook',
-    name: 'Custom HTTP Webhook Endpoint',
-    category: 'Realtime API',
-    description: 'Stream custom JSON event payloads directly to ChurnGuard.AI\'s real-time ingestion pipeline.',
-    icon: 'webhook',
-    status: 'connected',
-    last_sync: '2026-08-03T11:52:00Z',
-    events_count_24h: 12800,
-    config: { endpoint_url: 'https://api.churnguard.ai/webhooks/v1/ingest', signing_secret: 'wh_sign_••••••••9901' }
   }
 ];
 

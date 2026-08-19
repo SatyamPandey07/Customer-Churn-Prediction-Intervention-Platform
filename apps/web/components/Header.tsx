@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from 'react';
-import { Search, Bell, Sun, Moon, LogOut } from 'lucide-react';
+import { Search, Bell, Sun, Moon, LogOut, Menu } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from './ThemeProvider';
 
-export default function Header({ userRole }: { userRole: string }) {
+export default function Header({ userRole, onMenuClick }: { userRole: string, onMenuClick: () => void }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
@@ -29,14 +29,20 @@ export default function Header({ userRole }: { userRole: string }) {
   };
 
   return (
-    <header className="h-16 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 px-8 flex items-center justify-between sticky top-0 z-30 transition-colors duration-300 shadow-xs">
-      {/* Search Input */}
-      <div className="flex items-center space-x-3 w-96">
-        <div className="relative w-full">
+    <header className="h-16 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 px-4 md:px-8 flex items-center justify-between sticky top-0 z-30 transition-colors duration-300 shadow-xs">
+      {/* Left side: Menu Toggle + Search */}
+      <div className="flex items-center space-x-2 md:space-x-3 flex-1 max-w-lg">
+        <button 
+          onClick={onMenuClick}
+          className="md:hidden p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <div className="relative w-full max-w-sm">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search customers, campaigns, or MRR..."
+            placeholder="Search..."
             className="w-full bg-slate-100/80 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 py-1.5 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
           />
         </div>

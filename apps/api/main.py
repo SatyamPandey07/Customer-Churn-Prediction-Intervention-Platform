@@ -4,10 +4,13 @@ from apps.api.routers import (
     analytics,
     anomalies,
     auth,
+    branding,
     campaigns,
     champions,
     compliance,
     crm_keys,
+    dashboard_layout,
+    domains,
     explanations,
     health,
     integrations,
@@ -35,6 +38,8 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(GlobalRateLimitMiddleware)
 
 app.include_router(auth.router)
+app.include_router(branding.router)
+app.include_router(domains.router)
 app.include_router(webhooks.router)
 app.include_router(predictions.router)
 app.include_router(explanations.router)
@@ -50,6 +55,7 @@ app.include_router(champions.router)
 app.include_router(playbooks.router)
 app.include_router(public_api.router)
 app.include_router(crm_keys.router)
+app.include_router(dashboard_layout.router)
 
 
 

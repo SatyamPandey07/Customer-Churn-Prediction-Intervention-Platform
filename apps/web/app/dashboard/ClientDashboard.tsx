@@ -1,286 +1,335 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRealtime } from '@/components/RealtimeProvider';
-import { useRouter } from 'next/navigation';
 import { 
   AlertTriangle, DollarSign, TrendingUp, Sparkles, 
-  ChevronRight, X, Mail, Send, MessageSquare, CheckCircle
+  ChevronRight, X, Mail, Send, MessageSquare, CheckCircle, Undo2, Redo2
 } from 'lucide-react';
-import { MOCK_EXPLANATIONS, Customer } from '@/lib/demoData';
+import { Customer, MOCK_ANALYTICS } from '@/lib/demoData';
+import { debounce } from 'lodash';
+
+import { ResponsiveGridLayout, Layout, LayoutItem, ResponsiveLayouts as Layouts, useContainerWidth } from 'react-grid-layout';
+
+import { WidgetConfig, WidgetType, WIDGET_DEF } from '@/components/widgets/WidgetRegistry';
+import WidgetWrapper from '@/components/widgets/WidgetWrapper';
+import MetricsSummaryWidget from '@/components/widgets/MetricsSummaryWidget';
+import ChurnRiskTableWidget from '@/components/widgets/ChurnRiskTableWidget';
+import AnalyticsWidget from '@/components/widgets/AnalyticsWidget';
+
+interface DashboardState {
+  widgets: WidgetConfig[];
+  layouts: Layouts;
+}
 
 export default function ClientDashboard({ initialCustomers }: { initialCustomers: Customer[] }) {
+  const { width, containerRef, mounted } = useContainerWidth();
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
-  const [sortField, setSortField] = useState<keyof Customer>('churn_probability');
-  const [sortDesc, setSortDesc] = useState(true);
-  const [tierFilter, setTierFilter] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [dashboardData, setDashboardData] = useState<DashboardState>({ widgets: [], layouts: {} });
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [outreachSuccess, setOutreachSuccess] = useState<string | null>(null);
+
+  // Undo/Redo State
+  const [history, setHistory] = useState<DashboardState[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
 
   const socket = useRealtime();
 
   useEffect(() => {
     if (!socket) return;
-    
     const handleUpdate = (data: any) => {
-      setCustomers(prev => prev.map(c => {
-        if (c.id === data.customer_id) {
-          return {
-            ...c,
-            churn_probability: data.churn_probability,
-            churn_risk_tier: data.churn_risk_tier
-          };
-        }
-        return c;
-      }));
+      setCustomers(prev => prev.map(c => c.id === data.customer_id ? { ...c, churn_probability: data.churn_probability, churn_risk_tier: data.churn_risk_tier } : c));
     };
-    
     socket.on('churn_update', handleUpdate);
-    return () => {
-      socket.off('churn_update', handleUpdate);
-    };
+    return () => { socket.off('churn_update', handleUpdate); };
   }, [socket]);
 
-  const handleSort = (field: keyof Customer) => {
-    if (sortField === field) {
-      setSortDesc(!sortDesc);
-    } else {
-      setSortField(field);
-      setSortDesc(true);
+  useEffect(() => {
+    fetch('/api/dashboard/layout')
+      .then(res => res.json())
+      .then(data => {
+        let initialData: DashboardState;
+        if (data.layout && data.layout.widgets && data.layout.widgets.length > 0) {
+          initialData = data.layout;
+        } else {
+          // System Default fallback
+          initialData = {
+            widgets: [
+              { id: 'default-metrics', type: WidgetType.METRICS_SUMMARY, config: {} },
+              { id: 'default-table', type: WidgetType.CHURN_RISK_TABLE, config: { risk_tier_filter: 'all', row_limit: 10 } }
+            ],
+            layouts: {
+              lg: [
+                { i: 'default-metrics', x: 0, y: 0, w: 12, h: 1, minW: WIDGET_DEF[WidgetType.METRICS_SUMMARY].minW, minH: WIDGET_DEF[WidgetType.METRICS_SUMMARY].minH },
+                { i: 'default-table', x: 0, y: 1, w: 12, h: 3, minW: WIDGET_DEF[WidgetType.CHURN_RISK_TABLE].minW, minH: WIDGET_DEF[WidgetType.CHURN_RISK_TABLE].minH }
+              ]
+            }
+          };
+        }
+        setDashboardData(initialData);
+        setHistory([initialData]);
+        setHistoryIndex(0);
+        setIsLoading(false);
+      })
+      .catch(() => setIsLoading(false));
+  }, []);
+
+  const pushHistory = useCallback((newState: DashboardState) => {
+    setHistory(prev => {
+      const newHistory = prev.slice(0, historyIndex + 1);
+      newHistory.push(newState);
+      setHistoryIndex(newHistory.length - 1);
+      return newHistory;
+    });
+    setDashboardData(newState);
+  }, [historyIndex]);
+
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      setHistoryIndex(i => i - 1);
+      setDashboardData(history[historyIndex - 1]);
+      debouncedSave(history[historyIndex - 1]);
     }
   };
 
-  const getTierBadge = (tier: string | null) => {
-    switch (tier?.toLowerCase()) {
-      case 'critical':
-        return 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/30';
-      case 'high':
-        return 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/30';
-      case 'medium':
-        return 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30';
-      case 'low':
-        return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30';
-      default:
-        return 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400 border-slate-200 dark:border-slate-700';
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      setHistoryIndex(i => i + 1);
+      setDashboardData(history[historyIndex + 1]);
+      debouncedSave(history[historyIndex + 1]);
     }
   };
 
-  const totalMrrAtRisk = customers
-    .filter(c => c.churn_risk_tier === 'critical' || c.churn_risk_tier === 'high')
-    .reduce((sum, c) => sum + (c.mrr || 0), 0);
+  const debouncedSave = useRef(
+    debounce(async (dataToSave: DashboardState) => {
+      try {
+        await fetch('/api/dashboard/layout', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dataToSave)
+        });
+      } catch (e) {
+        console.error("Failed to save layout");
+      }
+    }, 1000)
+  ).current;
 
-  const criticalCount = customers.filter(c => c.churn_risk_tier === 'critical').length;
-  const avgRisk = customers.length > 0 
-    ? (customers.reduce((sum, c) => sum + (c.churn_probability || 0), 0) / customers.length * 100).toFixed(1)
-    : '0';
-
-  const filtered = customers.filter(c => {
-    const matchesTier = tierFilter === 'all' || c.churn_risk_tier?.toLowerCase() === tierFilter.toLowerCase();
-    const matchesSearch = c.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          (c.plan && c.plan.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesTier && matchesSearch;
-  });
-
-  const sorted = [...filtered].sort((a, b) => {
-    const aVal = a[sortField];
-    const bVal = b[sortField];
-    if (aVal === bVal) return 0;
-    if (aVal === null) return 1;
-    if (bVal === null) return -1;
+  const onLayoutChange = (currentLayout: Layout, allLayouts: Layouts) => {
+    // Only push to history and save if we are in edit mode
+    // (react-grid-layout triggers onLayoutChange on mount and resize, which we want to ignore for history)
+    if (!isEditMode) return;
     
-    const modifier = sortDesc ? -1 : 1;
-    return aVal < bVal ? -1 * modifier : 1 * modifier;
-  });
-
-  const handleSendOutreach = (channel: string) => {
-    setOutreachSuccess(`Automated ${channel.toUpperCase()} outreach triggered successfully!`);
-    setTimeout(() => setOutreachSuccess(null), 4000);
+    setDashboardData(prev => {
+      // Basic deep equality check to prevent pushing duplicate history on mount/no-ops
+      if (JSON.stringify(prev.layouts) === JSON.stringify(allLayouts)) {
+        return prev;
+      }
+      const newState = { ...prev, layouts: allLayouts };
+      pushHistory(newState);
+      debouncedSave(newState);
+      return newState;
+    });
   };
 
-  const explanation = selectedCustomer ? (MOCK_EXPLANATIONS[selectedCustomer.id] || {
-    risk_tier: selectedCustomer.churn_risk_tier || 'medium',
-    top_drivers: [
-      { feature: 'usage_trend_30d', shap_value: 0.32, human_readable: 'Product login frequency dropped by 42% in past 30 days' },
-      { feature: 'support_tickets_90d', shap_value: 0.24, human_readable: '3 billing inquiry tickets opened in past 45 days' },
-      { feature: 'seat_shrinkage', shap_value: 0.15, human_readable: 'Active user seat allocation shrank by 30%' },
-    ],
-    intervention_recommendation: {
-      strategy: 'Proactive Customer Success Check-In + Usage Review',
-      copy: `Hi Support Team, We observed a drop in overall product activity for customer ${selectedCustomer.id.slice(0, 8)}. Recommend scheduling a 15-minute sync with their admin.`,
-      recommended_channel: 'email',
+  const publishTenantDefault = async () => {
+    try {
+      await fetch('/api/dashboard/layout/tenant-default', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dashboardData)
+      });
+      alert("Tenant default published successfully.");
+      setIsEditMode(false);
+    } catch (e) {
+      alert("Failed to publish default.");
     }
-  }) : null;
+  };
+
+  const resetToDefault = async () => {
+    await fetch('/api/dashboard/layout', { method: 'DELETE' });
+    window.location.reload();
+  };
+
+  const addWidget = (type: WidgetType) => {
+    const id = `${type}-${Date.now()}`;
+    const def = WIDGET_DEF[type];
+    const newWidget: WidgetConfig = { id, type, config: { ...def.defaultConfig } };
+    
+    // Auto-place at the bottom
+    const newLayoutItem: LayoutItem = {
+      i: id,
+      x: 0,
+      y: Infinity, // puts it at the bottom
+      w: def.minW || 4,
+      h: def.minH || 2,
+      minW: def.minW || 2,
+      minH: def.minH || 2
+    };
+
+    const newState: DashboardState = {
+      widgets: [...dashboardData.widgets, newWidget],
+      layouts: {
+        ...dashboardData.layouts,
+        lg: [...(dashboardData.layouts.lg || []), newLayoutItem]
+      }
+    };
+    
+    pushHistory(newState);
+    debouncedSave(newState);
+  };
+
+  const removeWidget = (id: string) => {
+    const newState: DashboardState = {
+      widgets: dashboardData.widgets.filter(w => w.id !== id),
+      layouts: Object.fromEntries(
+        Object.entries(dashboardData.layouts).map(([bp, layout]) => [
+          bp,
+          (layout as Layout).filter((l: LayoutItem) => l.i !== id)
+        ])
+      )
+    };
+    pushHistory(newState);
+    debouncedSave(newState);
+  };
+
+  const updateWidgetConfig = (id: string, newConfig: any) => {
+    const newState: DashboardState = {
+      ...dashboardData,
+      widgets: dashboardData.widgets.map(w => w.id === id ? { ...w, config: newConfig } : w)
+    };
+    pushHistory(newState);
+    debouncedSave(newState);
+  };
+
+  const totalMrrAtRisk = customers.filter(c => ['critical', 'high'].includes(c.churn_risk_tier || '')).reduce((sum, c) => sum + (c.mrr || 0), 0);
+  const criticalCount = customers.filter(c => c.churn_risk_tier === 'critical').length;
+  const avgRisk = customers.length > 0 ? (customers.reduce((sum, c) => sum + (c.churn_probability || 0), 0) / customers.length * 100).toFixed(1) : '0';
+
+  if (isLoading) {
+    return <div className="text-sm text-slate-500 p-8">Loading dashboard configuration...</div>;
+  }
+
+  const renderWidget = (w: WidgetConfig) => {
+    switch (w.type) {
+      case WidgetType.METRICS_SUMMARY:
+        return <MetricsSummaryWidget totalMrrAtRisk={totalMrrAtRisk} criticalCount={criticalCount} avgRisk={avgRisk} customersCount={customers.length} />;
+      case WidgetType.CHURN_RISK_TABLE:
+        return <ChurnRiskTableWidget customers={customers} onSelectCustomer={setSelectedCustomer} config={w.config} />;
+      case WidgetType.ANALYTICS_ROI:
+      case WidgetType.ANALYTICS_INTERVENTIONS:
+      case WidgetType.ANALYTICS_COHORTS:
+      case WidgetType.ANALYTICS_RAR:
+        return <AnalyticsWidget widgetConfig={w} analyticsData={MOCK_ANALYTICS} />;
+      default:
+        return <div className="p-4 text-xs text-slate-500 border border-dashed border-slate-300 rounded-lg">Unsupported Widget: {w.type}</div>;
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* Metric Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white/95 dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 p-5 rounded-2xl backdrop-blur-xl shadow-sm relative overflow-hidden transition-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">MRR at Risk</span>
-            <div className="p-2.5 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400">
-              <DollarSign className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">${totalMrrAtRisk.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-          <div className="mt-1 text-xs text-red-600 dark:text-red-400 font-bold flex items-center space-x-1">
-            <span>Critical & High Tier MRR</span>
-          </div>
-        </div>
+      {/* Controls Bar */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Churn Risk Dashboard</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          {isEditMode ? (
+            <>
+              <div className="flex items-center space-x-1 border-r border-slate-300 dark:border-slate-700 pr-3">
+                <button 
+                  onClick={handleUndo} 
+                  disabled={historyIndex <= 0}
+                  className="p-1.5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 disabled:opacity-30 rounded-lg"
+                  title="Undo Layout Change"
+                >
+                  <Undo2 className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={handleRedo} 
+                  disabled={historyIndex >= history.length - 1}
+                  className="p-1.5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 disabled:opacity-30 rounded-lg"
+                  title="Redo Layout Change"
+                >
+                  <Redo2 className="w-4 h-4" />
+                </button>
+              </div>
 
-        <div className="bg-white/95 dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 p-5 rounded-2xl backdrop-blur-xl shadow-sm relative overflow-hidden transition-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Critical Customers</span>
-            <div className="p-2.5 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400">
-              <AlertTriangle className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">{criticalCount} Accounts</div>
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-semibold">Require Immediate Intervention</div>
-        </div>
-
-        <div className="bg-white/95 dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 p-5 rounded-2xl backdrop-blur-xl shadow-sm relative overflow-hidden transition-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Avg Churn Probability</span>
-            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">{avgRisk}%</div>
-          <div className="mt-1 text-xs text-emerald-600 dark:text-emerald-400 font-bold">Across {customers.length} Accounts</div>
-        </div>
-
-        <div className="bg-white/95 dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 p-5 rounded-2xl backdrop-blur-xl shadow-sm relative overflow-hidden transition-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">AI Retention Engine</span>
-            <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
-              <Sparkles className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">XGBoost + Gemini</div>
-          <div className="mt-1 text-xs text-purple-600 dark:text-purple-300 font-bold">SHAP Explainability Active</div>
+              <select
+                className="px-2 py-1.5 bg-slate-100 dark:bg-slate-800 text-xs font-bold rounded-lg text-slate-700 dark:text-slate-300 border-none outline-none"
+                onChange={(e) => {
+                  if (e.target.value) {
+                    addWidget(e.target.value as WidgetType);
+                    e.target.value = '';
+                  }
+                }}
+                defaultValue=""
+              >
+                <option value="" disabled>+ Add Widget...</option>
+                <option value={WidgetType.CHURN_RISK_TABLE}>Churn Risk Table</option>
+                <option value={WidgetType.METRICS_SUMMARY}>Metrics Summary</option>
+                <option value={WidgetType.ANALYTICS_ROI}>ROI Analytics</option>
+                <option value={WidgetType.ANALYTICS_INTERVENTIONS}>Intervention Performance</option>
+                <option value={WidgetType.ANALYTICS_COHORTS}>Cohort Breakdown</option>
+                <option value={WidgetType.ANALYTICS_RAR}>Revenue at Risk</option>
+              </select>
+              <button onClick={resetToDefault} className="px-3 py-1.5 border border-red-500/30 text-red-600 dark:text-red-400 bg-red-500/10 text-xs font-bold rounded-lg hover:bg-red-500/20 transition-colors">Reset</button>
+              <button onClick={publishTenantDefault} className="px-3 py-1.5 border border-purple-500/30 text-purple-600 dark:text-purple-400 bg-purple-500/10 text-xs font-bold rounded-lg hover:bg-purple-500/20 transition-colors">Publish Default</button>
+              <button onClick={() => setIsEditMode(false)} className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow-md transition-colors">Finish Editing</button>
+            </>
+          ) : (
+            <button onClick={() => setIsEditMode(true)} className="px-4 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors">
+              Edit Layout
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Main Customers Table Container */}
-      <div className="bg-white/95 dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 backdrop-blur-xl shadow-sm transition-colors">
-        {/* Controls Bar */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div>
-            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">Churn Risk Telemetry</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Real-time XGBoost risk predictions & automated SHAP driver rankings</p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Search */}
-            <input
-              type="text"
-              placeholder="Filter by ID or Plan..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 rounded-xl px-3.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-
-            {/* Risk Tier Filter */}
-            <select
-              value={tierFilter}
-              onChange={e => setTierFilter(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-300 text-xs rounded-xl px-3.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
-            >
-              <option value="all">All Tiers</option>
-              <option value="critical">Critical (&gt;75%)</option>
-              <option value="high">High (50-75%)</option>
-              <option value="medium">Medium (25-50%)</option>
-              <option value="low">Low (&lt;25%)</option>
-            </select>
-          </div>
+      {/* Empty State */}
+      {dashboardData.widgets.length === 0 && !isEditMode && (
+        <div className="flex flex-col items-center justify-center p-12 bg-white/50 dark:bg-slate-900/50 border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl">
+          <p className="text-slate-500 dark:text-slate-400 font-medium mb-4">Your dashboard is empty.</p>
+          <button onClick={() => setIsEditMode(true)} className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl shadow-md">Start Building</button>
         </div>
+      )}
 
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                <th className="py-3 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white" onClick={() => handleSort('id')}>Customer ID</th>
-                <th className="py-3 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white" onClick={() => handleSort('plan')}>Plan Tier</th>
-                <th className="py-3 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white" onClick={() => handleSort('mrr')}>Monthly Revenue</th>
-                <th className="py-3 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white" onClick={() => handleSort('churn_probability')}>Churn Risk Score</th>
-                <th className="py-3 px-4">Risk Velocity Trend</th>
-                <th className="py-3 px-4 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
-              {sorted.map(c => (
-                <tr 
-                  key={c.id}
-                  className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group cursor-pointer"
-                  onClick={() => setSelectedCustomer(c)}
-                >
-                  <td className="py-3.5 px-4 font-mono text-slate-900 dark:text-slate-200 font-bold">
-                    {c.id.slice(0, 18)}...
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="capitalize px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-300 font-semibold text-[11px]">
-                      {c.plan || 'basic'}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-slate-900 dark:text-slate-100 font-bold">
-                    ${(c.mrr || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <div className="flex items-center space-x-2">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase border ${getTierBadge(c.churn_risk_tier)}`}>
-                        {c.churn_risk_tier || 'LOW'}
-                      </span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">
-                        {c.churn_probability !== null ? (c.churn_probability * 100).toFixed(1) + '%' : '--'}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <div className="h-5 w-24 bg-slate-100 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800/60 flex items-end p-0.5 space-x-0.5">
-                      {(c.trend || [10, 20, 30, 40, 50, 60]).map((val, idx) => (
-                        <div
-                          key={idx}
-                          className={`flex-1 rounded-t-xs transition-all ${
-                            (c.churn_probability || 0) > 0.5 ? 'bg-red-500' : 'bg-emerald-500'
-                          }`}
-                          style={{ height: `${Math.max(15, val)}%` }}
-                        />
-                      ))}
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedCustomer(c);
-                      }}
-                      className="px-3 py-1 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 text-blue-700 dark:text-blue-400 rounded-lg text-xs font-bold transition-all flex items-center space-x-1 ml-auto"
-                    >
-                      <span>Inspect Risk</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {/* Grid Canvas */}
+      <div className="-mx-2" ref={containerRef as React.RefObject<HTMLDivElement>}>
+        {mounted && (
+          <ResponsiveGridLayout
+            className="layout"
+            layouts={dashboardData.layouts}
+            breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+            cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+            rowHeight={120}
+            onLayoutChange={onLayoutChange}
+            width={width}
+            dragConfig={{ enabled: isEditMode, handle: '.drag-handle' }}
+            resizeConfig={{ enabled: isEditMode }}
+            margin={[16, 16]}
+          >
+          {dashboardData.widgets.map(w => (
+            <div key={w.id}>
+              <WidgetWrapper 
+                widget={w} 
+                isEditing={isEditMode} 
+                onRemove={removeWidget} 
+                onUpdateConfig={updateWidgetConfig}
+              >
+                {renderWidget(w)}
+              </WidgetWrapper>
+            </div>
+          ))}
+          </ResponsiveGridLayout>
+        )}
       </div>
 
       {/* SHAP & Gemini Risk Explanation Modal */}
       {selectedCustomer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-6 shadow-2xl relative transition-colors">
-            <button
-              onClick={() => setSelectedCustomer(null)}
-              className="absolute top-4 right-4 p-1 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
+            <button onClick={() => setSelectedCustomer(null)} className="absolute top-4 right-4 p-1 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
               <X className="w-5 h-5" />
             </button>
-
             <div>
               <div className="flex items-center space-x-2 text-xs font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">
                 <Sparkles className="w-4 h-4 text-blue-500" />
@@ -288,7 +337,7 @@ export default function ClientDashboard({ initialCustomers }: { initialCustomers
               </div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-white font-mono">{selectedCustomer.id}</h3>
               <div className="flex items-center space-x-3 mt-2 text-xs">
-                <span className={`px-2.5 py-0.5 rounded-full font-extrabold uppercase border ${getTierBadge(selectedCustomer.churn_risk_tier)}`}>
+                <span className={`px-2.5 py-0.5 rounded-full font-extrabold uppercase border ${selectedCustomer.churn_risk_tier === 'critical' ? 'bg-red-500/10 text-red-700' : 'bg-slate-100 text-slate-700'}`}>
                   {selectedCustomer.churn_risk_tier} Risk Tier
                 </span>
                 <span className="text-slate-800 dark:text-slate-200 font-bold">
@@ -305,33 +354,15 @@ export default function ClientDashboard({ initialCustomers }: { initialCustomers
               </div>
             )}
 
-            {/* Top SHAP Drivers */}
-            <div className="space-y-3">
-              <h4 className="text-xs font-extrabold text-slate-500 dark:text-slate-300 uppercase tracking-wider">Top Churn Signal Drivers (SHAP Rankings)</h4>
-              <div className="space-y-2">
-                {explanation?.top_drivers?.map((driver: any, idx: number) => (
-                  <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/80 rounded-xl flex items-start justify-between">
-                    <div className="space-y-0.5">
-                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200">{driver.human_readable}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">Feature ID: {driver.feature}</div>
-                    </div>
-                    <span className="text-xs font-mono font-bold text-red-600 dark:text-red-400 bg-red-500/10 px-2 py-0.5 rounded-lg border border-red-500/20">
-                      +{(driver.shap_value * 100).toFixed(0)}% Impact
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* Gemini Intervention Strategy */}
             <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl space-y-2">
               <div className="flex items-center space-x-2 text-xs font-extrabold text-blue-700 dark:text-blue-300">
                 <Sparkles className="w-4 h-4 text-blue-500" />
                 <span>Gemini Recommended Strategy</span>
               </div>
-              <div className="text-xs font-bold text-slate-900 dark:text-white">{explanation?.intervention_recommendation?.strategy}</div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white">Proactive Check-In</div>
               <p className="text-xs text-slate-800 dark:text-slate-300 italic bg-white dark:bg-slate-950/60 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/80">
-                &quot;{explanation?.intervention_recommendation?.copy}&quot;
+                &quot;Recommend scheduling a 15-minute sync with their admin.&quot;
               </p>
             </div>
 
@@ -340,23 +371,21 @@ export default function ClientDashboard({ initialCustomers }: { initialCustomers
               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Execute Immediate Retention Campaign</div>
               <div className="grid grid-cols-3 gap-3">
                 <button
-                  onClick={() => handleSendOutreach('email')}
+                  onClick={() => { setOutreachSuccess("Outreach sent!"); setTimeout(()=>setOutreachSuccess(null), 3000); }}
                   className="py-2.5 px-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2 shadow-md shadow-blue-500/20"
                 >
                   <Mail className="w-4 h-4" />
                   <span>Send Email Offer</span>
                 </button>
-
                 <button
-                  onClick={() => handleSendOutreach('slack')}
+                  onClick={() => { setOutreachSuccess("Slack alert sent!"); setTimeout(()=>setOutreachSuccess(null), 3000); }}
                   className="py-2.5 px-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2 shadow-md shadow-purple-500/20"
                 >
                   <Send className="w-4 h-4" />
                   <span>Slack Alert</span>
                 </button>
-
                 <button
-                  onClick={() => handleSendOutreach('in_app')}
+                  onClick={() => { setOutreachSuccess("Banner activated!"); setTimeout(()=>setOutreachSuccess(null), 3000); }}
                   className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2 shadow-md shadow-emerald-500/20"
                 >
                   <MessageSquare className="w-4 h-4" />

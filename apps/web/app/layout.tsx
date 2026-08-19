@@ -1,9 +1,11 @@
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
+import { TenantBrandingProvider } from "@/components/TenantBrandingProvider";
+
 export const metadata = {
-  title: "ChurnGuard.AI | Predictive Retention Platform",
-  description: "Predict churn risk, generate SHAP explanations, & automate targeted retention campaigns with ChurnGuard.AI.",
+  title: "Churn Intervention Platform",
+  description: "Predict churn risk, generate SHAP explanations, & automate targeted retention campaigns.",
 };
 
 export default function RootLayout({
@@ -14,9 +16,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased">
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+        <TenantBrandingProvider>
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
+        </TenantBrandingProvider>
       </body>
     </html>
   );

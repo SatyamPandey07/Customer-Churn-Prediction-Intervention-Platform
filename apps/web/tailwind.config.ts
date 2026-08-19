@@ -12,6 +12,10 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        tenant: {
+          primary: "var(--tenant-primary, #2563eb)", // default blue-600
+          secondary: "var(--tenant-secondary, #1e40af)" // default blue-800
+        }
       },
     },
   },

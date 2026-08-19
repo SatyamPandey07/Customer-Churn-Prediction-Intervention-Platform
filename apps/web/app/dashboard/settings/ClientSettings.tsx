@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Users, Key, Bell, Shield, Plus, Trash2, CheckCircle2, Copy, Check } from 'lucide-react';
+import Link from 'next/link';
 
 type Member = {
   id: string;
@@ -93,13 +94,23 @@ export default function ClientSettings() {
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Control tenant access levels for CSMs, Analysts, and Owners.</p>
           </div>
 
+        </div>
+
+        <div className="flex gap-2">
           <button
             onClick={() => setShowInviteModal(true)}
-            className="py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-blue-500/20 transition-all flex items-center space-x-2"
+            className="py-2.5 px-4 bg-tenant-primary hover:opacity-90 text-white rounded-xl text-xs font-semibold shadow-lg shadow-blue-500/20 transition-all flex items-center space-x-2"
           >
             <Plus className="w-4 h-4" />
             <span>Invite Team Member</span>
           </button>
+          
+          <Link
+            href="/dashboard/settings/branding"
+            className="py-2.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold transition-all flex items-center space-x-2"
+          >
+            <span>Enterprise White-Labeling</span>
+          </Link>
         </div>
 
         <div className="overflow-x-auto">
